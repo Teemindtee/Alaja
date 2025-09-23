@@ -1077,108 +1077,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(FLUTTERWAVE_TOKEN_PACKAGES);
   });
 
-  // Support ticket submission endpoint (duplicate - already defined above)
-  // app.post("/api/support/tickets", async (req: Request, res: Response) => { ... });
-
-  // Contract payment initialization endpoint (duplicate - already defined above)
-  // app.post("/api/contracts/:contractId/payment", authenticateToken, async (req: AuthenticatedRequest, res: Response) => { ... });
-
-  // Escrow payment verification endpoint
-  app.post("/api/contracts/:contractId/verify-payment", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const { contractId } = req.params;
-      const { reference } = req.body;
-
-      // Get contract details
-      const contract = await storage.getContract(contractId);
-      if (!contract) {
-        return res.status(404).json({ message: "Contract not found" });
-      }
-
-      // Verify user is the client for this contract
-      if (contract.clientId !== req.user.userId) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-
-      // Verify payment with Flutterwave
-      const flutterwaveService = new FlutterwaveService();
-      const paymentData = await flutterwaveService.verifyTransaction(reference);
-
-      if (paymentData.status === 'success') {
-        // Update contract escrow status to 'held'
-        await storage.updateContract(contractId, { escrowStatus: 'held' });
-
-        // Update the find status to 'in progress'
-        await storage.updateFind(contract.findId, { status: 'in_progress' });
-
-        // Send email notification to finder that work can begin
-        try {
-          const finder = await storage.getFinder(contract.finderId);
-          const finderUser = finder ? await storage.getUser(finder.userId) : null;
-          const clientUser = await storage.getUser(contract.clientId);
-          const request = await storage.getFind(contract.findId);
-
-          if (finderUser && clientUser && request) {
-            await emailService.notifyFinderWorkCanBegin(
-              finderUser.email,
-              `${clientUser.firstName} ${clientUser.lastName}`,
-              request.title,
-              contract.amount.toString()
-            );
-          }
-        } catch (emailError) {
-          console.error('Failed to send work begin notification email:', emailError);
-        }
-
-        res.json({
-          success: true,
-          message: "Payment verified and escrow funded successfully. Work can now begin.",
-          contract: { ...contract, escrowStatus: 'held' }
-        });
-      } else {
-        res.status(400).json({
-          success: false,
-          message: "Payment verification failed"
-        });
-      }
-    } catch (error) {
-      console.error('Payment verification error:', error);
-      res.status(500).json({ message: "Failed to verify payment" });
-    }
-  });
-
-  // Get contract payment status
-  app.get("/api/contracts/:contractId/payment-status", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const { contractId } = req.params;
-
-      const contract = await storage.getContract(contractId);
-      if (!contract) {
-        return res.status(404).json({ message: "Contract not found" });
-      }
-
-      // Verify user has access to this contract
-      if (contract.clientId !== req.user.userId && contract.finderId !== req.user.userId) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-
-      res.json({
-        contractId: contract.id,
-        escrowStatus: contract.escrowStatus,
-        amount: contract.amount,
-        paymentRequired: contract.escrowStatus === 'pending'
-      });
-    } catch (error) {
-      console.error('Failed to get payment status:', error);
-      res.status(500).json({ message: "Failed to get payment status" });
-    }
-  });
-
-  // Token packages endpoint
-  app.get("/api/findertokens/packages", (req: Request, res: Response) => {
-    res.json(FLUTTERWAVE_TOKEN_PACKAGES);
-  });
-
   // Opay token packages endpoint - REMOVED
 
   // FinderToken™ Purchase endpoint
@@ -1779,7 +1677,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const categories = await storage.getActiveCategories();
       res.json(categories);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch categories" });
+      console.error('Error fetching categories:', error);
+      res.status(500).json({ message: 'Failed to fetch categories' });
     }
   });
 
@@ -2145,7 +2044,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get messages for a conversation
-  app.get("/api/messages/conversations/:conversationId/messages", authenticateToken, async (req: AuthenticatedRequest, res) => {
+  app.get("/api/messages/conversations/:conversationId/messages", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { conversationId } = req.params;
 

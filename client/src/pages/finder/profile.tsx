@@ -35,8 +35,7 @@ export default function FinderProfile() {
 
   // Fetch categories for dropdown
   const { data: categories = [], isLoading: categoriesLoading } = useQuery<Category[]>({
-    queryKey: ['/api/categories'],
-    enabled: !!user
+    queryKey: ['/api/categories']
   });
 
   // Update form data when finder data changes

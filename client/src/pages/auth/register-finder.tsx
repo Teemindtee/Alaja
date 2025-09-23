@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,18 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Handshake, UserPlus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-
-// Assume categories are fetched from an API or context
-// For demonstration purposes, let's mock categories data
-const categories = [
-  { id: "1", name: "Web Development", isActive: true },
-  { id: "2", name: "Mobile Development", isActive: true },
-  { id: "3", name: "UI/UX Design", isActive: true },
-  { id: "4", name: "Data Science", isActive: false },
-  { id: "5", name: "Cloud Computing", isActive: true },
-  { id: "6", name: "DevOps", isActive: true },
-];
-const categoriesLoading = false;
+import type { Category } from "@shared/schema";
 
 export default function RegisterFinder() {
   const [, navigate] = useLocation();
@@ -43,6 +33,11 @@ export default function RegisterFinder() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+  // Fetch categories for registration
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery<Category[]>({
+    queryKey: ['/api/categories'],
+  });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
