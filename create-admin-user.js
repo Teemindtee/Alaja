@@ -1,6 +1,7 @@
 
-const bcrypt = require('bcrypt');
-const crypto = require('crypto');
+import bcrypt from 'bcrypt';
+import crypto from 'crypto';
+import fs from 'fs';
 
 // Generate a secure random password
 function generateSecurePassword(length = 12) {
@@ -33,7 +34,6 @@ async function createAdminUser() {
   console.log('\n=== SAVE THESE CREDENTIALS SECURELY ===');
   
   // Also save to a file for backup
-  const fs = require('fs');
   const credentials = {
     email: email,
     password: password,
