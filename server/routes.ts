@@ -1100,9 +1100,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied" });
       }
 
-      // Verify payment with Paystack
-      const paystackService = new PaystackService(); // Assuming PaystackService is available
-      const paymentData = await paystackService.verifyTransaction(reference);
+      // Verify payment with Flutterwave
+      const flutterwaveService = new FlutterwaveService();
+      const paymentData = await flutterwaveService.verifyTransaction(reference);
 
       if (paymentData.status === 'success') {
         // Update contract escrow status to 'held'
@@ -1176,7 +1176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Token packages endpoint
   app.get("/api/findertokens/packages", (req: Request, res: Response) => {
-    res.json(TOKEN_PACKAGES); // Assuming TOKEN_PACKAGES is defined elsewhere
+    res.json(FLUTTERWAVE_TOKEN_PACKAGES);
   });
 
   // Opay token packages endpoint - REMOVED
@@ -1190,14 +1190,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid token amount or price" });
       }
 
-      const paystackService = new PaystackService(); // Assuming PaystackService is available
+      const flutterwaveService = new FlutterwaveService();
       const user = await storage.getUser(req.user.userId);
 
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      const reference = paystackService.generateTransactionReference(req.user.userId);
+      const reference = flutterwaveService.generateTransactionReference(req.user.userId);
 
       // Create callback URL for after payment
       const callbackUrl = `${req.protocol}://${req.get('host')}/finder/payment-success?payment=success&reference=${reference}`;
@@ -1226,8 +1226,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { packageId } = req.body;
 
-      const paystackService = new PaystackService(); // Assuming PaystackService is available
-      const selectedPackage = TOKEN_PACKAGES.find((pkg: any) => pkg.id === packageId); // Assuming TOKEN_PACKAGES is defined
+      const flutterwaveService = new FlutterwaveService();
+      const selectedPackage = FLUTTERWAVE_TOKEN_PACKAGES.find((pkg: any) => pkg.id === packageId);
 
       if (!selectedPackage) {
         return res.status(404).json({ message: "Package not found" });
@@ -1424,9 +1424,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/payments/verify/:reference", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { reference } = req.params;
-      const paystackService = new PaystackService(); // Assuming PaystackService is available
+      const flutterwaveService = new FlutterwaveService();
 
-      const transaction = await paystackService.verifyTransaction(reference);
+      const transaction = await flutterwaveService.verifyTransaction(reference);
 
       if (transaction.status === 'success') {
         const { metadata } = transaction;
@@ -2484,7 +2484,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Initialize payment with Paystack
-      const paymentService = new PaystackService(); // Assuming PaystackService is available
+      const paymentService = new FlutterwaveService();
       const reference = paymentService.generateTransactionReference(user.id);
 
       const paymentData = await paymentService.initializeTransaction(
@@ -2521,7 +2521,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Verify payment with Paystack
-      const paymentService = new PaystackService(); // Assuming PaystackService is available
+      const paymentService = new FlutterwaveService();
       const verification = await paymentService.verifyTransaction(reference);
 
       if (verification.status === 'success') {
