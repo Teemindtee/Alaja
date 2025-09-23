@@ -15,10 +15,6 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 35155
-externalPort = 3001
-
-[[ports]]
 localPort = 40595
 externalPort = 3000
 
@@ -27,7 +23,7 @@ PORT = "5000"
 DATABASE_URL = "postgresql://username:password@localhost:5432/findermeister"
 
 [workflows]
-runButton = "Project"
+runButton = "Dev Server"
 
 [[workflows.workflow]]
 name = "Project"
@@ -51,6 +47,19 @@ waitForPort = 5000
 name = "Start App"
 author = 46311184
 mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+
+[[workflows.workflow]]
+name = "Dev Server"
+author = 46116882
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pkill -f \"node.*server\" || true"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
