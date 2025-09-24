@@ -370,7 +370,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/finder/profile", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const { bio, category, skills, availability } = req.body;
+      const { bio, category, categories, skills, availability } = req.body;
 
       const user = await storage.getUser(req.user.userId);
       if (!user) {
@@ -386,13 +386,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Finder profile not found" });
       }
 
-      // Update finder profile
-      const updatedFinder = await storage.updateFinder(finder.id, {
+      // Prepare update data
+      const updateData: any = {
         bio,
-        category,
         skills,
         availability
-      });
+      };
+
+      // Handle categories - prioritize new categories array over legacy category
+      if (categories && Array.isArray(categories)) {
+        updateData.categories = categories;
+        // Also update the legacy category field with the first category for backward compatibility
+        updateData.category = categories.length > 0 ? categories[0] : category;
+      } else if (category) {
+        // If only legacy category is provided, use it
+        updateData.category = category;
+        // Convert single category to array for new categories field
+        updateData.categories = [category];
+      }
+
+      // Update finder profile
+      const updatedFinder = await storage.updateFinder(finder.id, updateData);
 
       if (!updatedFinder) {
         return res.status(404).json({ message: "Failed to update finder profile" });

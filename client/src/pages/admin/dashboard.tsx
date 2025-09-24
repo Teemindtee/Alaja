@@ -36,6 +36,10 @@ interface DashboardStats {
   activeFinds: number;
   completedFinds: number;
   totalRevenue: string;
+  userGrowth: number;
+  findGrowth: number;
+  proposalGrowth: number;
+  revenueGrowth: number;
 }
 
 export default function AdminDashboardModern() {
@@ -59,6 +63,37 @@ export default function AdminDashboardModern() {
 
   const isLoading = usersLoading || findsLoading || proposalsLoading;
 
+  // Calculate current month and last month dates
+  const now = new Date();
+  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+
+  // Filter data by month
+  const currentMonthUsers = users.filter(u => new Date(u.createdAt || 0) >= currentMonthStart);
+  const lastMonthUsers = users.filter(u => {
+    const date = new Date(u.createdAt || 0);
+    return date >= lastMonthStart && date <= lastMonthEnd;
+  });
+
+  const currentMonthFinds = finds.filter(f => new Date(f.createdAt || 0) >= currentMonthStart);
+  const lastMonthFinds = finds.filter(f => {
+    const date = new Date(f.createdAt || 0);
+    return date >= lastMonthStart && date <= lastMonthEnd;
+  });
+
+  const currentMonthProposals = proposals.filter(p => new Date(p.createdAt || 0) >= currentMonthStart);
+  const lastMonthProposals = proposals.filter(p => {
+    const date = new Date(p.createdAt || 0);
+    return date >= lastMonthStart && date <= lastMonthEnd;
+  });
+
+  // Calculate growth percentages
+  const calculateGrowth = (current: number, previous: number) => {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return ((current - previous) / previous * 100);
+  };
+
   // Calculate dashboard stats
   const stats: DashboardStats = {
     totalUsers: users.length,
@@ -66,7 +101,11 @@ export default function AdminDashboardModern() {
     totalProposals: proposals.length,
     activeFinds: finds.filter(f => f.status === 'open' || f.status === 'in_progress').length,
     completedFinds: finds.filter(f => f.status === 'completed').length,
-    totalRevenue: "₦2,450,000" // This would come from actual revenue calculations
+    totalRevenue: "₦2,450,000", // This would come from actual revenue calculations
+    userGrowth: calculateGrowth(currentMonthUsers.length, lastMonthUsers.length),
+    findGrowth: calculateGrowth(currentMonthFinds.length, lastMonthFinds.length),
+    proposalGrowth: calculateGrowth(currentMonthProposals.length, lastMonthProposals.length),
+    revenueGrowth: 18.9 // This would be calculated from actual revenue data
   };
 
   // Get recent finds and users for the bottom tables
@@ -164,8 +203,14 @@ export default function AdminDashboardModern() {
                   </div>
                 </div>
                 <div className="mt-3 sm:mt-4 flex items-center gap-2">
-                  <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
-                  <span className="text-xs sm:text-sm text-green-600 font-medium">+12.5%</span>
+                  {stats.userGrowth >= 0 ? (
+                    <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
+                  ) : (
+                    <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-red-500 rotate-180" />
+                  )}
+                  <span className={`text-xs sm:text-sm font-medium ${stats.userGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {stats.userGrowth >= 0 ? '+' : ''}{stats.userGrowth.toFixed(1)}%
+                  </span>
                   <span className="text-xs sm:text-sm text-gray-500">vs last month</span>
                 </div>
               </CardContent>
@@ -183,8 +228,14 @@ export default function AdminDashboardModern() {
                   </div>
                 </div>
                 <div className="mt-3 sm:mt-4 flex items-center gap-2">
-                  <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
-                  <span className="text-xs sm:text-sm text-green-600 font-medium">+8.2%</span>
+                  {stats.findGrowth >= 0 ? (
+                    <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
+                  ) : (
+                    <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-red-500 rotate-180" />
+                  )}
+                  <span className={`text-xs sm:text-sm font-medium ${stats.findGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {stats.findGrowth >= 0 ? '+' : ''}{stats.findGrowth.toFixed(1)}%
+                  </span>
                   <span className="text-xs sm:text-sm text-gray-500">vs last month</span>
                 </div>
               </CardContent>
@@ -202,8 +253,14 @@ export default function AdminDashboardModern() {
                   </div>
                 </div>
                 <div className="mt-3 sm:mt-4 flex items-center gap-2">
-                  <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
-                  <span className="text-xs sm:text-sm text-green-600 font-medium">+15.3%</span>
+                  {stats.proposalGrowth >= 0 ? (
+                    <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
+                  ) : (
+                    <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-red-500 rotate-180" />
+                  )}
+                  <span className={`text-xs sm:text-sm font-medium ${stats.proposalGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {stats.proposalGrowth >= 0 ? '+' : ''}{stats.proposalGrowth.toFixed(1)}%
+                  </span>
                   <span className="text-xs sm:text-sm text-gray-500">vs last month</span>
                 </div>
               </CardContent>
@@ -221,8 +278,14 @@ export default function AdminDashboardModern() {
                   </div>
                 </div>
                 <div className="mt-3 sm:mt-4 flex items-center gap-2">
-                  <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
-                  <span className="text-xs sm:text-sm text-green-600 font-medium">+18.9%</span>
+                  {stats.revenueGrowth >= 0 ? (
+                    <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
+                  ) : (
+                    <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-red-500 rotate-180" />
+                  )}
+                  <span className={`text-xs sm:text-sm font-medium ${stats.revenueGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {stats.revenueGrowth >= 0 ? '+' : ''}{stats.revenueGrowth.toFixed(1)}%
+                  </span>
                   <span className="text-xs sm:text-sm text-gray-500">vs last month</span>
                 </div>
               </CardContent>

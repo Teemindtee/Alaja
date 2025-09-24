@@ -53,29 +53,7 @@ export default function FinderProfile() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: any) => {
-      const payload = {
-        bio: data.bio || "",
-        category: data.category || "", // Keep for backward compatibility
-        categories: data.categories || [], // New multiple categories field
-        skills: typeof data.skills === 'string'
-          ? data.skills.split(",").map((s: string) => s.trim()).filter(Boolean)
-          : data.skills || [],
-        availability: data.availability || "full-time"
-      };
-
-      // For API, ensure we only send 'categories' if it's not empty, otherwise send the old 'category' if present
-      if (payload.categories.length > 0) {
-        delete payload.category; // Remove the old single category field if new ones are provided
-      } else if (payload.category) {
-        // If no new categories are selected, but an old one exists, keep it.
-        // If both are empty, the API should handle it.
-      } else {
-        // If neither categories nor category are present, remove category to avoid sending empty string if not intended.
-        delete payload.category;
-      }
-
-
-      const response = await apiRequest('PATCH', '/api/finder/profile', payload);
+      const response = await apiRequest('PATCH', '/api/finder/profile', data);
       return response.json();
     },
     onSuccess: () => {
@@ -110,7 +88,7 @@ export default function FinderProfile() {
 
   const handleUpdateProfile = () => {
     // Basic validation
-    if (formData.categories.length === 0) {
+    if (!formData.categories || formData.categories.length === 0) {
       toast({
         title: "Validation Error",
         description: "Please select at least one specialty category.",
@@ -119,7 +97,17 @@ export default function FinderProfile() {
       return;
     }
 
-    updateProfileMutation.mutate(formData);
+    // Prepare the payload to send to the server
+    const payload = {
+      bio: formData.bio || "",
+      categories: formData.categories || [],
+      skills: typeof formData.skills === 'string'
+        ? formData.skills.split(",").map((s: string) => s.trim()).filter(Boolean)
+        : formData.skills || [],
+      availability: formData.availability || "full-time"
+    };
+
+    updateProfileMutation.mutate(payload);
   };
 
   // Get star rating display

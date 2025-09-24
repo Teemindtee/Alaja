@@ -547,7 +547,7 @@ export const restrictedWordsRelations = relations(restrictedWords, ({ one }) => 
 // Export types
 export type User = InferSelectModel<typeof users>;
 export type InsertUser = InferInsertModel<typeof users>;
-export type Finder = InferSelectModel<typeof finders>;
+export type Finder = InferSelectModel<typeof finders> & { categories?: string[] | null };
 export type InsertFinder = InferInsertModel<typeof finders>;
 export type Find = InferSelectModel<typeof finds>;
 export type InsertFind = InferInsertModel<typeof finds>;

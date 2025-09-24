@@ -379,9 +379,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateFinder(id: string, updates: Partial<Finder>): Promise<Finder | undefined> {
+    // Ensure categories is handled properly if it exists in updates
+    const updateData = { ...updates };
+    
     const [finder] = await db
       .update(finders)
-      .set(updates)
+      .set(updateData)
       .where(eq(finders.id, id))
       .returning();
     return finder || undefined;
