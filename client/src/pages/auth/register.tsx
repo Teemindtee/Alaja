@@ -18,6 +18,7 @@ export default function Register() {
   const { register } = useAuth();
   const { toast } = useToast();
 
+  const [userType, setUserType] = useState<'client' | 'finder'>('client');
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -74,7 +75,7 @@ export default function Register() {
       return;
     }
 
-    if (formData.categories.length === 0) {
+    if (userType === 'finder' && formData.categories.length === 0) {
       toast({
         variant: "destructive",
         title: "Error",
@@ -89,26 +90,32 @@ export default function Register() {
       // Prepare skills for backend if needed (e.g., comma-separated string)
       const skillsArray = formData.skills.split(',').map(skill => skill.trim()).filter(skill => skill !== '');
 
-      await register({
+      const registrationData: any = {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
         password: formData.password,
         phone: formData.phone,
-        role: 'finder',
-        bio: formData.bio,
-        category: formData.category, // Keep for backward compatibility
-        categories: formData.categories, // New multiple categories field
-        skills: skillsArray,
-        availability: formData.availability
-      });
+        role: userType,
+      };
+
+      // Add finder-specific fields only if registering as finder
+      if (userType === 'finder') {
+        registrationData.bio = formData.bio;
+        registrationData.category = formData.category; // Keep for backward compatibility
+        registrationData.categories = formData.categories; // New multiple categories field
+        registrationData.skills = skillsArray;
+        registrationData.availability = formData.availability;
+      }
+
+      await register(registrationData);
 
       toast({
         title: "Success!",
-        description: "Your finder account has been created successfully.",
+        description: `Your ${userType} account has been created successfully.`,
       });
 
-      navigate("/finder/dashboard");
+      navigate(userType === 'finder' ? "/finder/dashboard" : "/client/dashboard");
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -143,9 +150,9 @@ export default function Register() {
           <div className="max-w-md mx-auto px-4 sm:px-6">
             <div className="bg-white rounded-lg shadow-sm border p-8">
               <div className="text-center mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Sign Up as a Finder</h1>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Your Account</h1>
                 <p className="text-gray-600 mb-6">
-                  Create an account to find products and services for clients.
+                  Join FinderMeister as a {userType === 'client' ? 'client to request services' : 'finder to offer your services'}.
                 </p>
                 <div className="bg-finder-red rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                   <User className="w-8 h-8 text-white" />
@@ -153,6 +160,37 @@ export default function Register() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* User Type Selection */}
+                <div className="mb-6">
+                  <Label className="text-sm font-semibold text-gray-700 mb-3 block">I want to join as:</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setUserType('client')}
+                      className={`p-4 border-2 rounded-lg text-center transition-all ${
+                        userType === 'client'
+                          ? 'border-finder-red bg-finder-red/10 text-finder-red'
+                          : 'border-gray-300 text-gray-600 hover:border-gray-400'
+                      }`}
+                    >
+                      <div className="font-semibold">Client</div>
+                      <div className="text-xs mt-1">Request services</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setUserType('finder')}
+                      className={`p-4 border-2 rounded-lg text-center transition-all ${
+                        userType === 'finder'
+                          ? 'border-finder-red bg-finder-red/10 text-finder-red'
+                          : 'border-gray-300 text-gray-600 hover:border-gray-400'
+                      }`}
+                    >
+                      <div className="font-semibold">Finder</div>
+                      <div className="text-xs mt-1">Provide services</div>
+                    </button>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="firstName" className="sr-only">First name</Label>
@@ -238,104 +276,109 @@ export default function Register() {
                   />
                 </div>
 
-                {/* Bio Input */}
-                <div>
-                  <Label htmlFor="bio" className="sr-only">Bio</Label>
-                  <Input
-                    id="bio"
-                    name="bio"
-                    value={formData.bio}
-                    onChange={handleInputChange}
-                    placeholder="Short bio (optional)"
-                    className="h-12 border-gray-300 rounded-md"
-                  />
-                </div>
-
-                {/* Skills Input */}
-                <div>
-                  <Label htmlFor="skills" className="sr-only">Skills</Label>
-                  <Input
-                    id="skills"
-                    name="skills"
-                    value={formData.skills}
-                    onChange={handleInputChange}
-                    placeholder="Skills (comma-separated)"
-                    className="h-12 border-gray-300 rounded-md"
-                  />
-                </div>
-
-                {/* Categories Selection */}
-                <div>
-                  <Label htmlFor="categories">Categories</Label>
-                  <div className="space-y-3">
-                    <p className="text-sm text-gray-600">Select all categories that match your skills and expertise:</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto p-3 border rounded-md bg-white/80">
-                      {categoriesLoading ? (
-                        <div className="col-span-full text-center py-4 text-gray-500">Loading categories...</div>
-                      ) : categories.length > 0 ? (
-                        categories
-                          .filter(category => category.isActive)
-                          .map((category) => (
-                            <label key={category.id} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
-                              <input
-                                type="checkbox"
-                                checked={formData.categories.includes(category.name)}
-                                onChange={(e) => {
-                                  const isChecked = e.target.checked;
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    categories: isChecked
-                                      ? [...prev.categories, category.name]
-                                      : prev.categories.filter(cat => cat !== category.name)
-                                  }));
-                                }}
-                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                              />
-                              <span className="text-sm font-medium text-gray-700">{category.name}</span>
-                            </label>
-                          ))
-                      ) : (
-                        <div className="col-span-full text-center py-4 text-gray-500">No categories available</div>
-                      )}
+                {/* Finder-specific fields */}
+                {userType === 'finder' && (
+                  <>
+                    {/* Bio Input */}
+                    <div>
+                      <Label htmlFor="bio" className="sr-only">Bio</Label>
+                      <Input
+                        id="bio"
+                        name="bio"
+                        value={formData.bio}
+                        onChange={handleInputChange}
+                        placeholder="Short bio (optional)"
+                        className="h-12 border-gray-300 rounded-md"
+                      />
                     </div>
-                    {formData.categories.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {formData.categories.map((categoryName) => (
-                          <Badge key={categoryName} variant="secondary" className="text-xs">
-                            {categoryName}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  categories: prev.categories.filter(cat => cat !== categoryName)
-                                }));
-                              }}
-                              className="ml-1 text-gray-500 hover:text-gray-700"
-                            >
-                              ×
-                            </button>
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
 
-                {/* Availability Selection */}
-                <div>
-                  <Label htmlFor="availability">Availability</Label>
-                  <Select value={formData.availability} onValueChange={(value) => setFormData(prev => ({ ...prev, availability: value }))}>
-                    <SelectTrigger className="bg-white/80 h-12">
-                      <SelectValue placeholder="Select your availability" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="full-time">Full-time</SelectItem>
-                      <SelectItem value="part-time">Part-time</SelectItem>
-                      <SelectItem value="contract">Contract</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                    {/* Skills Input */}
+                    <div>
+                      <Label htmlFor="skills" className="sr-only">Skills</Label>
+                      <Input
+                        id="skills"
+                        name="skills"
+                        value={formData.skills}
+                        onChange={handleInputChange}
+                        placeholder="Skills (comma-separated)"
+                        className="h-12 border-gray-300 rounded-md"
+                      />
+                    </div>
+
+                    {/* Categories Selection */}
+                    <div>
+                      <Label htmlFor="categories">Categories</Label>
+                      <div className="space-y-3">
+                        <p className="text-sm text-gray-600">Select all categories that match your skills and expertise:</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto p-3 border rounded-md bg-white/80">
+                          {categoriesLoading ? (
+                            <div className="col-span-full text-center py-4 text-gray-500">Loading categories...</div>
+                          ) : categories.length > 0 ? (
+                            categories
+                              .filter(category => category.isActive)
+                              .map((category) => (
+                                <label key={category.id} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
+                                  <input
+                                    type="checkbox"
+                                    checked={formData.categories.includes(category.name)}
+                                    onChange={(e) => {
+                                      const isChecked = e.target.checked;
+                                      setFormData(prev => ({
+                                        ...prev,
+                                        categories: isChecked
+                                          ? [...prev.categories, category.name]
+                                          : prev.categories.filter(cat => cat !== category.name)
+                                      }));
+                                    }}
+                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                  />
+                                  <span className="text-sm font-medium text-gray-700">{category.name}</span>
+                                </label>
+                              ))
+                          ) : (
+                            <div className="col-span-full text-center py-4 text-gray-500">No categories available</div>
+                          )}
+                        </div>
+                        {formData.categories.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {formData.categories.map((categoryName) => (
+                              <Badge key={categoryName} variant="secondary" className="text-xs">
+                                {categoryName}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      categories: prev.categories.filter(cat => cat !== categoryName)
+                                    }));
+                                  }}
+                                  className="ml-1 text-gray-500 hover:text-gray-700"
+                                >
+                                  ×
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Availability Selection */}
+                    <div>
+                      <Label htmlFor="availability">Availability</Label>
+                      <Select value={formData.availability} onValueChange={(value) => setFormData(prev => ({ ...prev, availability: value }))}>
+                        <SelectTrigger className="bg-white/80 h-12">
+                          <SelectValue placeholder="Select your availability" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="full-time">Full-time</SelectItem>
+                          <SelectItem value="part-time">Part-time</SelectItem>
+                          <SelectItem value="contract">Contract</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
 
                 <div className="flex items-start space-x-3 mb-6">
                   <input
@@ -355,10 +398,10 @@ export default function Register() {
 
                 <Button
                   type="submit"
-                  disabled={isLoading || !acceptedTerms || formData.categories.length === 0}
+                  disabled={isLoading || !acceptedTerms || (userType === 'finder' && formData.categories.length === 0)}
                   className="w-full h-12 bg-finder-red hover:bg-finder-red-dark text-white font-medium text-lg rounded-md"
                 >
-                  {isLoading ? "Creating Account..." : "Sign Up"}
+                  {isLoading ? "Creating Account..." : `Sign Up as ${userType === 'client' ? 'Client' : 'Finder'}`}
                 </Button>
               </form>
 
