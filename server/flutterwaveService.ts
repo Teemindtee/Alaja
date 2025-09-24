@@ -249,4 +249,159 @@ export class FlutterwaveService {
       throw error;
     }
   }
+
+  async initiateBankTransfer(
+    accountNumber: string,
+    accountBank: string,
+    amount: number,
+    currency: string = 'NGN',
+    narration: string,
+    reference: string,
+    beneficiaryName?: string
+  ) {
+    if (!this.isConfigured()) {
+      throw new Error('Flutterwave service is not properly configured. Please check your API keys.');
+    }
+
+    try {
+      const payload = {
+        account_number: accountNumber,
+        account_bank: accountBank,
+        amount: amount,
+        currency: currency,
+        narration: narration,
+        reference: reference,
+        callback_url: `${process.env.BASE_URL || 'http://localhost:5000'}/api/payments/flutterwave/transfer/webhook`,
+        debit_currency: currency
+      };
+
+      if (beneficiaryName) {
+        payload.beneficiary_name = beneficiaryName;
+      }
+
+      console.log('Flutterwave bank transfer payload:', JSON.stringify(payload, null, 2));
+
+      const response = await fetch(`${this.baseUrl}/transfers`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.secretKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      console.log('Flutterwave bank transfer response:', JSON.stringify(data, null, 2));
+      
+      if (!response.ok || data.status !== 'success') {
+        console.error('Flutterwave bank transfer failed:', data);
+        throw new Error(data.message || 'Failed to initiate bank transfer');
+      }
+
+      return {
+        id: data.data.id,
+        reference: reference,
+        status: data.data.status,
+        amount: data.data.amount,
+        fee: data.data.fee,
+        currency: data.data.currency,
+        created_at: data.data.created_at
+      };
+    } catch (error) {
+      console.error('Flutterwave bank transfer error:', error);
+      throw error;
+    }
+  }
+
+  async verifyTransfer(transferId: string) {
+    try {
+      const response = await fetch(`${this.baseUrl}/transfers/${transferId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.secretKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      console.log('Flutterwave transfer verification response:', JSON.stringify(data, null, 2));
+      
+      if (!response.ok || data.status !== 'success') {
+        console.error('Flutterwave transfer verification failed:', data);
+        throw new Error(data.message || 'Failed to verify transfer');
+      }
+
+      return {
+        id: data.data.id,
+        status: data.data.status,
+        amount: data.data.amount,
+        fee: data.data.fee,
+        currency: data.data.currency,
+        reference: data.data.reference,
+        created_at: data.data.created_at,
+        completed_at: data.data.completed_at
+      };
+    } catch (error) {
+      console.error('Flutterwave transfer verification error:', error);
+      throw error;
+    }
+  }
+
+  async getBankCode(bankName: string): Promise<string | null> {
+    try {
+      // Common Nigerian bank codes mapping
+      const bankCodes: { [key: string]: string } = {
+        'access bank': '044',
+        'access bank plc': '044',
+        'citibank': '023',
+        'citibank nigeria limited': '023',
+        'diamond bank': '063',
+        'ecobank nigeria': '050',
+        'fidelity bank': '070',
+        'first bank of nigeria': '011',
+        'first city monument bank': '214',
+        'guaranty trust bank': '058',
+        'gtbank': '058',
+        'heritage bank': '030',
+        'keystone bank': '082',
+        'polaris bank': '076',
+        'providus bank': '101',
+        'stanbic ibtc bank': '221',
+        'standard chartered bank': '068',
+        'sterling bank': '232',
+        'union bank of nigeria': '032',
+        'united bank for africa': '033',
+        'uba': '033',
+        'unity bank': '215',
+        'wema bank': '035',
+        'zenith bank': '057'
+      };
+
+      const normalizedBankName = bankName.toLowerCase().trim();
+      
+      // Try exact match first
+      if (bankCodes[normalizedBankName]) {
+        return bankCodes[normalizedBankName];
+      }
+
+      // Try partial match
+      for (const [name, code] of Object.entries(bankCodes)) {
+        if (name.includes(normalizedBankName) || normalizedBankName.includes(name)) {
+          return code;
+        }
+      }
+
+      console.warn(`Bank code not found for: ${bankName}`);
+      return null;
+    } catch (error) {
+      console.error('Error getting bank code:', error);
+      return null;
+    }
+  }
+
+  generateTransferReference(userId: string): string {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 8);
+    return `TRANSFER_${userId.substring(0, 8)}_${timestamp}_${random}`.toUpperCase();
+  }
 }

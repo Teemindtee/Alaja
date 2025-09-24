@@ -77,7 +77,7 @@ const storage_multer = multer.diskStorage({
   }
 });
 
-const upload = multer({ 
+const upload = multer({
   storage: storage_multer,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
@@ -87,7 +87,7 @@ const upload = multer({
     // Allow specific file types
     const allowedMimes = [
       'image/jpeg',
-      'image/png', 
+      'image/png',
       'image/gif',
       'image/webp',
       'application/pdf',
@@ -412,7 +412,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Failed to update finder profile" });
       }
 
-      res.json({ 
+      res.json({
         message: "Profile updated successfully",
         profile: updatedFinder
       });
@@ -450,7 +450,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
-      res.json({ 
+      res.json({
         message: "Profile updated successfully",
         user: { ...updatedUser, password: undefined }
       });
@@ -589,7 +589,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const clientBalance = client.findertokenBalance || 0;
         if (clientBalance < highBudgetTokenCost) {
-          return res.status(400).json({ 
+          return res.status(400).json({
             message: `Insufficient findertokens. You need ${highBudgetTokenCost} findertokens for high-budget postings but only have ${clientBalance}. Please purchase findertokens to post this find.`,
             requiredTokens: highBudgetTokenCost,
             currentBalance: clientBalance,
@@ -632,7 +632,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const responseMessage = isHighBudget 
+      const responseMessage = isHighBudget
         ? `Find posted successfully! ${highBudgetTokenCost} findertokens have been deducted for this high-budget posting.`
         : "Find posted successfully!";
 
@@ -687,8 +687,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Client profile not found" });
       }
 
-      res.json({ 
-        balance: client.findertokenBalance || 0 
+      res.json({
+        balance: client.findertokenBalance || 0
       });
     } catch (error) {
       console.error('Failed to fetch client balance:', error);
@@ -821,7 +821,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const proposal = await storage.createProposal(proposalData);
 
-      // Deduct findertoken - update finder balance directly  
+      // Deduct findertoken - update finder balance directly
       const newBalance = (finder.findertokenBalance ?? 0) - requiredTokens;
       await storage.updateFinderTokenBalance(finder.id, newBalance);
 
@@ -1000,10 +1000,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      res.json({ 
+      res.json({
         success: true,
         message: "Proposal accepted and contract created. Please complete payment to start work.",
-        proposal, 
+        proposal,
         contract: {
           ...contract,
           findTitle: request.title,
@@ -1031,10 +1031,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Support ticket submitted:', { name, email, category, priority, subject, message });
 
       // For now, just return success
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         ticketId: `TICKET-${Date.now()}`,
-        message: "Support ticket submitted successfully" 
+        message: "Support ticket submitted successfully"
       });
     } catch (error) {
       console.error('Failed to submit support ticket:', error);
@@ -1062,9 +1062,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if contract is already funded
       console.log(`Contract ${contractId} escrow status: ${contract.escrowStatus}`);
       if (contract.escrowStatus === 'funded' || contract.escrowStatus === 'held') {
-        return res.status(400).json({ 
+        return res.status(400).json({
           message: "Contract is already funded",
-          escrowStatus: contract.escrowStatus 
+          escrowStatus: contract.escrowStatus
         });
       }
 
@@ -1075,7 +1075,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Payment services have been removed
-      return res.status(503).json({ 
+      return res.status(503).json({
         message: "Payment services are currently unavailable. Please contact support.",
         error: "Payment services removed"
       });
@@ -1176,7 +1176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/payments/flutterwave/config", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const flutterwaveService = new FlutterwaveService();
-      res.json({ 
+      res.json({
         isConfigured: flutterwaveService.isConfigured(),
         hasSecretKey: !!process.env.FLUTTERWAVE_SECRET_KEY,
         hasPublicKey: !!process.env.FLUTTERWAVE_PUBLIC_KEY
@@ -1316,14 +1316,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`Flutterwave client verification: Transaction ${reference} already processed`);
         }
 
-        res.json({ 
-          status: 'success', 
-          data: transaction 
+        res.json({
+          status: 'success',
+          data: transaction
         });
       } else {
-        res.json({ 
-          status: 'failed', 
-          message: 'Payment was not successful' 
+        res.json({
+          status: 'failed',
+          message: 'Payment was not successful'
         });
       }
     } catch (error) {
@@ -1373,14 +1373,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        res.json({ 
-          status: 'success', 
-          data: transaction 
+        res.json({
+          status: 'success',
+          data: transaction
         });
       } else {
-        res.json({ 
-          status: 'failed', 
-          message: 'Payment was not successful' 
+        res.json({
+          status: 'failed',
+          message: 'Payment was not successful'
         });
       }
     } catch (error) {
@@ -1433,14 +1433,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`Flutterwave verification: Transaction ${reference} already processed`);
         }
 
-        res.json({ 
-          status: 'success', 
-          data: transaction 
+        res.json({
+          status: 'success',
+          data: transaction
         });
       } else {
-        res.json({ 
-          status: 'failed', 
-          message: 'Payment was not successful' 
+        res.json({
+          status: 'failed',
+          message: 'Payment was not successful'
         });
       }
     } catch (error) {
@@ -1511,7 +1511,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // --- Client Contracts ---
-  // Client-specific contracts endpoint  
+  // Client-specific contracts endpoint
   app.get("/api/client/contracts", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
       if (req.user.role !== 'client') {
@@ -1585,7 +1585,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied" });
       }
 
-      await storage.updateContract(id, { 
+      await storage.updateContract(id, {
         escrowStatus: 'completed',
         isCompleted: true,
         completedAt: new Date()
@@ -1935,7 +1935,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       );
 
-      res.json({ 
+      res.json({
         objectPath,
         fileName,
         success: true
@@ -2679,11 +2679,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const { 
-        proposalTokenCost, 
-        findertokenPrice, 
-        platformFeePercentage, 
-        clientPaymentChargePercentage, 
+      const {
+        proposalTokenCost,
+        findertokenPrice,
+        platformFeePercentage,
+        clientPaymentChargePercentage,
         finderEarningsChargePercentage,
         highBudgetThreshold,
         highBudgetTokenCost
@@ -2733,7 +2733,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { finderId, amount, reason } = req.body;
 
       if (!finderId || !amount || !reason) {
-        return res.status(400).json({ message: "Finder ID, amount, and reason are required" });
+        return res.status(400).json({ message:"Finder ID, amount, and reason are required" });
       }
 
       // Get finder to verify they exist
@@ -2979,7 +2979,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .set({ availableBalance: newBalance })
             .where(eq(finders.id, withdrawal.finderId));
         } else {
-          return res.status(400).json({ 
+          return res.status(400).json({
             message: "Cannot approve withdrawal: Insufficient finder balance",
             availableBalance: finder?.availableBalance,
             requestedAmount: withdrawal.amount
@@ -3000,40 +3000,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Only finders can request withdrawals" });
       }
 
+      const { amount, paymentMethod, paymentDetails } = req.body;
+
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ message: "Invalid withdrawal amount" });
+      }
+
+      if (!paymentMethod || !paymentDetails) {
+        return res.status(400).json({ message: "Payment method and details are required" });
+      }
+
       const finder = await storage.getFinderByUserId(req.user.userId);
       if (!finder) {
         return res.status(404).json({ message: "Finder profile not found" });
       }
 
-      const { amount, paymentMethod, paymentDetails } = req.body;
-
-      const currentBalance = parseFloat(finder.availableBalance || '0');
+      const availableBalance = parseFloat(finder.availableBalance || '0');
       const requestedAmount = parseFloat(amount);
 
-      if (requestedAmount > currentBalance) {
-        return res.status(400).json({ 
+      if (requestedAmount > availableBalance) {
+        return res.status(400).json({
           message: "Insufficient balance",
-          availableBalance: currentBalance,
+          availableBalance: availableBalance,
           requestedAmount: requestedAmount
         });
       }
 
       // Generate unique request ID
-      const requestId = await storage.generateWithdrawalRequestId();
+      const requestId = `WR-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
 
-      const withdrawal = await storage.createWithdrawalRequest({
-        requestId,
+      const withdrawalRequest = await storage.createWithdrawalRequest({
         finderId: finder.id,
-        amount,
+        amount: amount.toString(),
+        status: 'pending',
         paymentMethod,
-        paymentDetails: JSON.stringify(paymentDetails),
-        status: 'pending'
+        paymentDetails: typeof paymentDetails === 'string' ? paymentDetails : JSON.stringify(paymentDetails),
+        requestId,
+        requestedAt: new Date().toISOString()
       });
 
-      res.status(201).json({ message: "Withdrawal request submitted successfully", withdrawal });
+      // Deduct the amount from available balance immediately
+      await storage.updateFinder(finder.id, {
+        availableBalance: (availableBalance - requestedAmount).toString()
+      });
+
+      // Auto-process withdrawal with Flutterwave
+      try {
+        const { WithdrawalService } = await import('./withdrawalService');
+        const withdrawalService = new WithdrawalService();
+
+        const processingResult = await withdrawalService.processWithdrawal(withdrawalRequest.id);
+
+        if (processingResult.success) {
+          res.json({
+            message: "Withdrawal request submitted and processed successfully",
+            requestId,
+            withdrawalId: withdrawalRequest.id,
+            status: "processing",
+            transferId: processingResult.transferId,
+            note: "Your withdrawal is being processed via Flutterwave. You'll receive an update shortly."
+          });
+        } else {
+          // If auto-processing fails, keep as pending for manual review
+          res.json({
+            message: "Withdrawal request submitted for manual review",
+            requestId,
+            withdrawalId: withdrawalRequest.id,
+            status: "pending",
+            note: "Your withdrawal will be reviewed and processed by our team within 24 hours."
+          });
+        }
+      } catch (error) {
+        console.error('Error auto-processing withdrawal:', error);
+        // If auto-processing fails, still return success for the request
+        res.json({
+          message: "Withdrawal request submitted for manual review",
+          requestId,
+          withdrawalId: withdrawalRequest.id,
+          status: "pending",
+          note: "Your withdrawal will be reviewed and processed by our team within 24 hours."
+        });
+      }
+
     } catch (error: any) {
-      console.error('Withdrawal request error:', error);
-      res.status(400).json({ message: "Failed to submit withdrawal request", error: error.message });
+      console.error('Error creating withdrawal request:', error);
+      res.status(500).json({ message: "Failed to create withdrawal request" });
     }
   });
 
@@ -3334,10 +3385,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `
       }, 'high');
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: "Test email queued successfully",
-        emailId 
+        emailId
       });
     } catch (error) {
       console.error('Test email error:', error);
@@ -3524,9 +3575,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { autoReleaseService } = await import('./autoReleaseService'); // Assuming autoReleaseService is in './autoReleaseService'
       const result = await autoReleaseService.manualRelease();
 
-      res.json({ 
+      res.json({
         message: `Auto-release process completed: ${result.released} contracts released`,
-        released: result.released 
+        released: result.released
       });
     } catch (error) {
       console.error('Auto-release error:', error);
@@ -4002,16 +4053,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'Admin access required' });
       }
 
-      const { 
-        email, 
-        firstName, 
-        lastName, 
-        department, 
-        permissions, 
-        maxTicketsPerDay, 
-        responseTimeTarget, 
-        specializations, 
-        languages 
+      const {
+        email,
+        firstName,
+        lastName,
+        department,
+        permissions,
+        maxTicketsPerDay,
+        responseTimeTarget,
+        specializations,
+        languages
       } = req.body;
 
       if (!email || !firstName || !lastName || !department || !permissions) {
@@ -4063,9 +4114,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(agentWithUser);
     } catch (error: any) {
       console.error('Create support agent error:', error);
-      res.status(500).json({ 
-        message: "Failed to create support agent", 
-        error: error.message 
+      res.status(500).json({
+        message: "Failed to create support agent",
+        error: error.message
       });
     }
   });
@@ -4501,7 +4552,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const settings = await db.select().from(withdrawalSettings).limit(1);
       res.json(settings[0] || {
         minimumAmount: "1000",
-        processingFee: "45", 
+        processingFee: "45",
         processingTimeHours: 24,
         isActive: true
       });

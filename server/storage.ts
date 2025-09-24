@@ -381,7 +381,7 @@ export class DatabaseStorage implements IStorage {
   async updateFinder(id: string, updates: Partial<Finder>): Promise<Finder | undefined> {
     // Ensure categories is handled properly if it exists in updates
     const updateData = { ...updates };
-    
+
     const [finder] = await db
       .update(finders)
       .set(updateData)
@@ -2351,7 +2351,7 @@ export class DatabaseStorage implements IStorage {
     return newDispute;
   }
 
-  async getDisputesByUserId(userId: string): Promise<Dispute[]> {
+  async getDisputesByUserId(userId: string): Promise<Dispute[]>{
     return await db
       .select()
       .from(disputes)

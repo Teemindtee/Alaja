@@ -324,8 +324,10 @@ export default function WithdrawalSettings() {
                     <ul className="text-sm text-blue-700 space-y-1">
                       <li>• Minimum withdrawal amount: ₦50.00</li>
                       <li>• 5% processing fee will be deducted</li>
-                      <li>• Withdrawals are processed within 1-3 business days</li>
+                      <li>• Powered by Flutterwave for secure bank transfers</li>
+                      <li>• Withdrawals are processed within minutes to 24 hours</li>
                       <li>• Ensure your bank details are correct before requesting</li>
+                      <li>• You'll receive instant notifications on transfer status</li>
                     </ul>
                   </div>
                 </div>

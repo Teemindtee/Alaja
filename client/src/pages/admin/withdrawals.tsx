@@ -22,7 +22,10 @@ import {
   ChevronRight,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Send, 
+  RotateCcw, 
+  Loader2
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -58,36 +61,75 @@ export default function AdminWithdrawals() {
     enabled: !!user && user.role === 'admin'
   });
 
-  const updateWithdrawalMutation = useMutation({
-    mutationFn: async ({ id, status, adminNotes }: { id: string; status: string; adminNotes: string }) => {
-      return await apiRequest(`/api/admin/withdrawals/${id}`, { 
-        method: 'PUT', 
-        body: JSON.stringify({ status, adminNotes }) 
-      });
-    },
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status, notes }: { id: string; status: string; notes?: string }) =>
+      apiRequest(`/api/admin/withdrawals/${id}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status, adminNotes: notes }),
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/withdrawals'] });
-      setSelectedWithdrawal(null);
-      setNewStatus("");
-      setAdminNotes("");
       toast({
-        title: "Success",
-        description: "Withdrawal request updated successfully"
+        title: "Status updated",
+        description: "Withdrawal status has been updated successfully.",
       });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to update withdrawal request",
-        variant: "destructive"
+        description: error.message || "Failed to update withdrawal status",
+        variant: "destructive",
       });
-    }
+    },
   });
+
+  const processWithdrawalMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiRequest(`/api/admin/withdrawals/${id}/process`, {
+        method: 'POST',
+      }),
+    onSuccess: (data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/withdrawals'] });
+      toast({
+        title: "Withdrawal processed",
+        description: "Flutterwave bank transfer has been initiated successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to process withdrawal",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const retryWithdrawalMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiRequest(`/api/admin/withdrawals/${id}/retry`, {
+        method: 'POST',
+      }),
+    onSuccess: (data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/withdrawals'] });
+      toast({
+        title: "Withdrawal retried",
+        description: "Withdrawal has been reset and processed again.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to retry withdrawal",
+        variant: "destructive",
+      });
+    },
+  });
+
 
   const handleUpdateWithdrawal = () => {
     if (!selectedWithdrawal || !newStatus) return;
 
-    updateWithdrawalMutation.mutate({
+    updateStatusMutation.mutate({
       id: selectedWithdrawal.id,
       status: newStatus,
       adminNotes
@@ -657,10 +699,10 @@ export default function AdminWithdrawals() {
                                               </Button>
                                               <Button
                                                 onClick={handleUpdateWithdrawal}
-                                                disabled={updateWithdrawalMutation.isPending || !newStatus}
+                                                disabled={updateStatusMutation.isPending || !newStatus}
                                                 className="bg-finder-red hover:bg-finder-red-dark h-11 font-semibold"
                                               >
-                                                {updateWithdrawalMutation.isPending ? (
+                                                {updateStatusMutation.isPending ? (
                                                   <div className="flex items-center gap-2">
                                                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                                     Updating...
@@ -934,10 +976,10 @@ export default function AdminWithdrawals() {
                                             </Button>
                                             <Button
                                               onClick={handleUpdateWithdrawal}
-                                              disabled={updateWithdrawalMutation.isPending || !newStatus}
+                                              disabled={updateStatusMutation.isPending || !newStatus}
                                               className="bg-finder-red hover:bg-finder-red-dark h-11 font-semibold"
                                             >
-                                              {updateWithdrawalMutation.isPending ? (
+                                              {updateStatusMutation.isPending ? (
                                                 <div className="flex items-center gap-2">
                                                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                                   Updating...
