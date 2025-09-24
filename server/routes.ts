@@ -2644,6 +2644,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // --- Contact Settings Routes ---
+  app.get("/api/admin/contact-settings", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const settings = await storage.getContactSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error('Error fetching contact settings:', error);
+      res.status(500).json({ message: "Failed to fetch contact settings" });
+    }
+  });
+
+  app.put("/api/admin/contact-settings", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const settings = await storage.updateContactSettings(req.body);
+      res.json({ message: "Contact settings updated successfully", settings });
+    } catch (error) {
+      console.error('Error updating contact settings:', error);
+      res.status(500).json({ message: "Failed to update contact settings" });
+    }
+  });
+
+  // Public contact settings endpoint
+  app.get("/api/contact-settings", async (req: Request, res: Response) => {
+    try {
+      const settings = await storage.getContactSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error('Error fetching public contact settings:', error);
+      res.status(500).json({ message: "Failed to fetch contact settings" });
+    }
+  });
+
   // --- Admin Settings Routes ---
   app.get("/api/admin/settings", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {

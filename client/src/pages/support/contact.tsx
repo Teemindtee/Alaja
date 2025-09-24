@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -46,6 +46,11 @@ export default function ContactSupport() {
     priority: "",
     subject: "",
     message: ""
+  });
+
+  // Fetch contact settings
+  const { data: contactSettings } = useQuery({
+    queryKey: ['/api/contact-settings'],
   });
 
   const submitTicket = useMutation({
@@ -221,7 +226,7 @@ export default function ContactSupport() {
                   <Mail className="w-5 h-5 text-finder-red mt-0.5" />
                   <div>
                     <p className="font-medium">Email Support</p>
-                    <p className="text-sm text-gray-600">findermeisterinnovations@gmail.com</p>
+                    <p className="text-sm text-gray-600">{contactSettings?.supportEmail || "findermeisterinnovations@gmail.com"}</p>
                     <p className="text-xs text-gray-500 mt-1">Response within 24 hours</p>
                   </div>
                 </div>
@@ -229,8 +234,8 @@ export default function ContactSupport() {
                   <Phone className="w-5 h-5 text-finder-red mt-0.5" />
                   <div>
                     <p className="font-medium">Phone Support</p>
-                    <p className="text-sm text-gray-600">+234-7039391065</p>
-                    <p className="text-xs text-gray-500 mt-1">Mon-Fri, 9 AM - 6 PM WAT</p>
+                    <p className="text-sm text-gray-600">{contactSettings?.supportPhone || "+234-7039391065"}</p>
+                    <p className="text-xs text-gray-500 mt-1">{contactSettings?.businessHours || "Mon-Fri, 9 AM - 6 PM WAT"}</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
@@ -241,21 +246,33 @@ export default function ContactSupport() {
                   </div>
                   <div>
                     <p className="font-medium">Office Address</p>
-                    <p className="text-sm text-gray-600">18 Back of Road safety office, Moniya, Ibadan</p>
+                    <p className="text-sm text-gray-600">{contactSettings?.officeAddress || "18 Back of Road safety office, Moniya, Ibadan"}</p>
                   </div>
                 </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-5 h-5 text-finder-red mt-0.5 flex items-center justify-center">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2z"/>
-                    </svg>
+                {contactSettings && (contactSettings.facebookUrl || contactSettings.twitterUrl || contactSettings.instagramUrl || contactSettings.tiktokUrl) && (
+                  <div className="flex items-start space-x-3">
+                    <div className="w-5 h-5 text-finder-red mt-0.5 flex items-center justify-center">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-medium">Social Media</p>
+                      {contactSettings.facebookUrl && (
+                        <p className="text-sm text-gray-600">Facebook: {contactSettings.facebookUrl}</p>
+                      )}
+                      {contactSettings.twitterUrl && (
+                        <p className="text-sm text-gray-600">Twitter/X: {contactSettings.twitterUrl}</p>
+                      )}
+                      {contactSettings.instagramUrl && (
+                        <p className="text-sm text-gray-600">Instagram: {contactSettings.instagramUrl}</p>
+                      )}
+                      {contactSettings.tiktokUrl && (
+                        <p className="text-sm text-gray-600">TikTok: {contactSettings.tiktokUrl}</p>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium">Social Media</p>
-                    <p className="text-sm text-gray-600">X, Facebook, Instagram: @findermeister</p>
-                    <p className="text-sm text-gray-600">TikTok: @findermeisterinnovations</p>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
 
@@ -270,19 +287,19 @@ export default function ContactSupport() {
               <CardContent className="space-y-3">
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-sm"><strong>Low:</strong> 2-3 business days</span>
+                  <span className="text-sm"><strong>Low:</strong> {contactSettings?.responseTimeLow || "2-3 business days"}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                  <span className="text-sm"><strong>Medium:</strong> 1-2 business days</span>
+                  <span className="text-sm"><strong>Medium:</strong> {contactSettings?.responseTimeMedium || "1-2 business days"}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                  <span className="text-sm"><strong>High:</strong> 4-8 hours</span>
+                  <span className="text-sm"><strong>High:</strong> {contactSettings?.responseTimeHigh || "4-8 hours"}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-finder-red/100 rounded-full"></div>
-                  <span className="text-sm"><strong>Urgent:</strong> 1-2 hours</span>
+                  <span className="text-sm"><strong>Urgent:</strong> {contactSettings?.responseTimeUrgent || "1-2 hours"}</span>
                 </div>
               </CardContent>
             </Card>

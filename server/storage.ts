@@ -83,6 +83,7 @@ import {
   supportTickets,
   supportTicketMessages,
   supportDepartments,
+  contactSettings,
   type SupportAgent,
   type SupportTicket,
   type SupportTicketMessage,
@@ -318,6 +319,10 @@ export interface IStorage {
 
   // Generate withdrawal request ID
   generateWithdrawalRequestId(): Promise<string>;
+
+  // Contact Settings operations
+  getContactSettings(): Promise<any>;
+  updateContactSettings(settings: any): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2734,6 +2739,70 @@ export class DatabaseStorage implements IStorage {
     const nextNumber = count + 1;
 
     return `WR-${year}-${nextNumber.toString().padStart(3, '0')}`;
+  }
+
+  // Contact Settings operations
+  async getContactSettings(): Promise<any> {
+    try {
+      const [settings] = await db.select().from(contactSettings).limit(1);
+      
+      if (!settings) {
+        // Create default settings if none exist
+        const [defaultSettings] = await db
+          .insert(contactSettings)
+          .values({})
+          .returning();
+        return defaultSettings;
+      }
+      
+      return settings;
+    } catch (error) {
+      console.error('Error getting contact settings:', error);
+      // Return default values if database error
+      return {
+        supportEmail: "findermeisterinnovations@gmail.com",
+        supportPhone: "+234-7039391065",
+        officeAddress: "18 Back of Road safety office, Moniya, Ibadan",
+        businessHours: "Mon-Fri, 9 AM - 6 PM WAT",
+        facebookUrl: "https://facebook.com/findermeister",
+        twitterUrl: "https://twitter.com/findermeister",
+        instagramUrl: "https://instagram.com/findermeister",
+        tiktokUrl: "https://tiktok.com/@findermeisterinnovations",
+        linkedinUrl: "https://linkedin.com/company/findermeister",
+        whatsappNumber: "+234-7039391065",
+        responseTimeLow: "2-3 business days",
+        responseTimeMedium: "1-2 business days",
+        responseTimeHigh: "4-8 hours",
+        responseTimeUrgent: "1-2 hours"
+      };
+    }
+  }
+
+  async updateContactSettings(settings: any): Promise<any> {
+    try {
+      // Check if settings exist
+      const [existing] = await db.select().from(contactSettings).limit(1);
+      
+      if (existing) {
+        // Update existing settings
+        const [updated] = await db
+          .update(contactSettings)
+          .set({ ...settings, updatedAt: new Date() })
+          .where(eq(contactSettings.id, existing.id))
+          .returning();
+        return updated;
+      } else {
+        // Create new settings
+        const [created] = await db
+          .insert(contactSettings)
+          .values(settings)
+          .returning();
+        return created;
+      }
+    } catch (error) {
+      console.error('Error updating contact settings:', error);
+      throw error;
+    }
   }
 
   // Restricted Words Management

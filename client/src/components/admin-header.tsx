@@ -48,7 +48,17 @@ export default function AdminHeader({ currentPage }: AdminHeaderProps) {
     { path: "/admin/restricted-words", label: "Restricted Words", icon: Shield, id: "restricted-words" },
     { path: "/admin/blog-posts", label: "Blog Posts", icon: FileText, id: "blog-posts" },
     { path: "/admin/categories", label: "Categories", icon: Tags, id: "categories" },
-    { path: "/admin/faq-management", icon: HelpCircle, label: "FAQs", id: "faq-management" },
+    { 
+      path: "/admin/faq-management", 
+      icon: HelpCircle, 
+      label: "FAQs", 
+      id: "faq-management",
+      hasDropdown: true,
+      subItems: [
+        { name: "FAQ Management", path: "/admin/faq-management", current: currentPage === "faq-management", icon: HelpCircle, id: "faq-management" },
+        { name: "Contact Settings", path: "/admin/contact-settings", current: currentPage === "contact-settings", icon: MessageSquare, id: "contact-settings" }
+      ]
+    },
     { path: "/admin/settings", label: "Settings", icon: Settings, id: "settings" },
     { path: "/admin/support-agents", label: "Support Agents", icon: HeadphonesIcon, id: "support-agents" },
   ];
@@ -76,7 +86,7 @@ export default function AdminHeader({ currentPage }: AdminHeaderProps) {
           <nav className="hidden lg:flex space-x-1">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = currentPage === item.id || (item.subItems && item.subItems.some(sub => currentPage === sub.id));
+              const isActive = currentPage === item.id || (item.hasDropdown && item.subItems && item.subItems.some(sub => currentPage === sub.id));
 
               if (item.hasDropdown && item.subItems) {
                 return (
@@ -163,7 +173,7 @@ export default function AdminHeader({ currentPage }: AdminHeaderProps) {
                   <div className="space-y-1 px-2">
                     {navItems.map((item) => {
                       const Icon = item.icon;
-                      const isActive = currentPage === item.id || (item.subItems && item.subItems.some(sub => currentPage === sub.id));
+                      const isActive = currentPage === item.id || (item.hasDropdown && item.subItems && item.subItems.some(sub => currentPage === sub.id));
 
                       if (item.hasDropdown && item.subItems) {
                         return (
