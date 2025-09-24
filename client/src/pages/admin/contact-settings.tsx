@@ -50,7 +50,7 @@ export default function AdminContactSettings() {
 
   // Update form data when settings are loaded
   React.useEffect(() => {
-    if (settings) {
+    if (settings && typeof settings === 'object') {
       setFormData({
         supportEmail: settings.supportEmail || "",
         supportPhone: settings.supportPhone || "",

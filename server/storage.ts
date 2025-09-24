@@ -2744,37 +2744,49 @@ export class DatabaseStorage implements IStorage {
   // Contact Settings operations
   async getContactSettings(): Promise<any> {
     try {
-      const [settings] = await db.select().from(contactSettings).limit(1);
+      const result = await db.select().from(contactSettings).limit(1);
+      const settings = result?.[0];
       
       if (!settings) {
         // Create default settings if none exist
-        const [defaultSettings] = await db
-          .insert(contactSettings)
-          .values({})
-          .returning();
-        return defaultSettings;
+        try {
+          const [defaultSettings] = await db
+            .insert(contactSettings)
+            .values({})
+            .returning();
+          return defaultSettings;
+        } catch (insertError) {
+          console.error('Error creating default contact settings:', insertError);
+          // Return hardcoded defaults if insert also fails
+          return this.getDefaultContactSettings();
+        }
       }
       
       return settings;
     } catch (error) {
       console.error('Error getting contact settings:', error);
       // Return default values if database error
-      return {
-        supportEmail: "findermeisterinnovations@gmail.com",
-        supportPhone: "+234-7039391065",
-        officeAddress: "18 Back of Road safety office, Moniya, Ibadan",
-        businessHours: "Mon-Fri, 9 AM - 6 PM WAT",
-        facebookUrl: "https://facebook.com/findermeister",
-        twitterUrl: "https://twitter.com/findermeister",
-        instagramUrl: "https://instagram.com/findermeister",
-        tiktokUrl: "https://tiktok.com/@findermeisterinnovations",
-        linkedinUrl: "https://linkedin.com/company/findermeister",
-        whatsappNumber: "+234-7039391065",
-        responseTimeLow: "2-3 business days",
-        responseTimeMedium: "1-2 business days",
-        responseTimeHigh: "4-8 hours",
-        responseTimeUrgent: "1-2 hours"
-      };
+      return this.getDefaultContactSettings();
+    }
+  }
+
+  private getDefaultContactSettings() {
+    return {
+      supportEmail: "findermeisterinnovations@gmail.com",
+      supportPhone: "+234-7039391065",
+      officeAddress: "18 Back of Road safety office, Moniya, Ibadan",
+      businessHours: "Mon-Fri, 9 AM - 6 PM WAT",
+      facebookUrl: "https://facebook.com/findermeister",
+      twitterUrl: "https://twitter.com/findermeister",
+      instagramUrl: "https://instagram.com/findermeister",
+      tiktokUrl: "https://tiktok.com/@findermeisterinnovations",
+      linkedinUrl: "https://linkedin.com/company/findermeister",
+      whatsappNumber: "+234-7039391065",
+      responseTimeLow: "2-3 business days",
+      responseTimeMedium: "1-2 business days",
+      responseTimeHigh: "4-8 hours",
+      responseTimeUrgent: "1-2 hours"
+    };
     }
   }
 

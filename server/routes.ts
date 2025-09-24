@@ -2652,7 +2652,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const settings = await storage.getContactSettings();
-      res.json(settings);
+      
+      // Ensure we return a valid object even if settings is null/undefined
+      const safeSettings = settings || {
+        supportEmail: "findermeisterinnovations@gmail.com",
+        supportPhone: "+234-7039391065",
+        officeAddress: "18 Back of Road safety office, Moniya, Ibadan",
+        businessHours: "Mon-Fri, 9 AM - 6 PM WAT",
+        facebookUrl: "https://facebook.com/findermeister",
+        twitterUrl: "https://twitter.com/findermeister",
+        instagramUrl: "https://instagram.com/findermeister",
+        tiktokUrl: "https://tiktok.com/@findermeisterinnovations",
+        linkedinUrl: "https://linkedin.com/company/findermeister",
+        whatsappNumber: "+234-7039391065",
+        responseTimeLow: "2-3 business days",
+        responseTimeMedium: "1-2 business days",
+        responseTimeHigh: "4-8 hours",
+        responseTimeUrgent: "1-2 hours"
+      };
+      
+      res.json(safeSettings);
     } catch (error) {
       console.error('Error fetching contact settings:', error);
       res.status(500).json({ message: "Failed to fetch contact settings" });
