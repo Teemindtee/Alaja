@@ -571,6 +571,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Create find request body:', req.body);
       console.log('Create find files:', req.files);
 
+      // Check if client is verified before allowing find creation
+      const client = await storage.getUser(req.user.userId);
+      if (!client || !client.isVerified) {
+        return res.status(403).json({
+          message: "Account verification required. You must verify your account before posting finds.",
+          verified: false,
+          verificationRequired: true
+        });
+      }
+
       // Get admin settings for high budget posting
       const settings = await storage.getAdminSettings();
       const highBudgetThreshold = parseInt(settings.highBudgetThreshold || "100000");
