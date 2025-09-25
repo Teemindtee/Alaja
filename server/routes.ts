@@ -1123,6 +1123,311 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Support Agent Authentication Middleware
+  async function requireSupportAgent(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+
+      const supportAgent = await storage.getUserSupportAgent(req.user.userId);
+      if (!supportAgent || !supportAgent.isActive) {
+        return res.status(403).json({ message: 'Support agent access required' });
+      }
+
+      // Attach agent info to request
+      (req as any).agent = supportAgent;
+      next();
+    } catch (error) {
+      console.error('Support agent authentication error:', error);
+      res.status(500).json({ message: 'Authentication error' });
+    }
+  }
+
+  // Check if agent has specific permission
+  function requirePermission(permission: string) {
+    return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+      const agent = (req as any).agent;
+      if (!agent || !agent.permissions.includes(permission)) {
+        return res.status(403).json({ message: `Permission required: ${permission}` });
+      }
+      next();
+    };
+  }
+
+  // --- Support Agent Ticket Management ---
+  
+  // Get tickets for agent based on permissions and department
+  app.get("/api/agent/tickets", authenticateToken, requireSupportAgent, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const agent = (req as any).agent;
+      const { status, priority, page = 1, limit = 20 } = req.query;
+
+      let filters: any = {};
+      
+      // Apply department filter based on agent's department
+      if (agent.department !== 'all') {
+        filters.department = agent.department;
+      }
+
+      // Apply status filter if provided
+      if (status && typeof status === 'string') {
+        filters.status = status;
+      }
+
+      // Apply priority filter if provided
+      if (priority && typeof priority === 'string') {
+        filters.priority = priority;
+      }
+
+      // If agent can only view assigned tickets, filter by assignment
+      if (!agent.permissions.includes('view_all_tickets')) {
+        filters.assignedTo = agent.id;
+      }
+
+      const tickets = await storage.getSupportTickets(filters);
+
+      console.log(`Agent ${agent.agentId} viewing tickets`, {
+        department: agent.department,
+        filters,
+        count: tickets.length
+      });
+
+      res.json({
+        tickets,
+        pagination: {
+          page: parseInt(page as string),
+          limit: parseInt(limit as string),
+          total: tickets.length
+        },
+        agent: {
+          id: agent.id,
+          agentId: agent.agentId,
+          department: agent.department,
+          permissions: agent.permissions
+        }
+      });
+    } catch (error) {
+      console.error('Failed to fetch tickets for agent:', error);
+      res.status(500).json({ message: "Failed to fetch tickets" });
+    }
+  });
+
+  // Get specific ticket details
+  app.get("/api/agent/tickets/:id", authenticateToken, requireSupportAgent, requirePermission('view_tickets'), async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const agent = (req as any).agent;
+
+      const ticket = await storage.getSupportTicket(id);
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+
+      // Check if agent can view this ticket based on department and assignment
+      if (agent.department !== 'all' && ticket.department !== agent.department) {
+        if (!agent.permissions.includes('view_all_tickets') && ticket.assignedTo !== agent.id) {
+          return res.status(403).json({ message: "Access denied to this ticket" });
+        }
+      }
+
+      // Get ticket messages
+      const messages = await storage.getSupportTicketMessages(id);
+
+      console.log(`Agent ${agent.agentId} viewing ticket ${ticket.ticketNumber}`);
+
+      res.json({
+        ticket,
+        messages: messages.map(msg => ({
+          ...msg,
+          // Hide internal messages from non-agent viewers if needed
+          isInternal: msg.isInternal && !agent.permissions.includes('view_internal_notes') ? false : msg.isInternal
+        }))
+      });
+    } catch (error) {
+      console.error('Failed to fetch ticket details:', error);
+      res.status(500).json({ message: "Failed to fetch ticket details" });
+    }
+  });
+
+  // Add response to ticket
+  app.post("/api/agent/tickets/:id/messages", authenticateToken, requireSupportAgent, requirePermission('respond_tickets'), async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { content, isInternal = false } = req.body;
+      const agent = (req as any).agent;
+
+      if (!content) {
+        return res.status(400).json({ message: "Message content is required" });
+      }
+
+      const ticket = await storage.getSupportTicket(id);
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+
+      // Check if agent can respond to this ticket
+      if (agent.department !== 'all' && ticket.department !== agent.department) {
+        if (!agent.permissions.includes('respond_all_tickets') && ticket.assignedTo !== agent.id) {
+          return res.status(403).json({ message: "Access denied to respond to this ticket" });
+        }
+      }
+
+      // Check internal notes permission
+      if (isInternal && !agent.permissions.includes('internal_notes')) {
+        return res.status(403).json({ message: "Permission denied for internal notes" });
+      }
+
+      // Create the message
+      const message = await storage.createSupportTicketMessage({
+        ticketId: id,
+        senderId: agent.userId,
+        senderType: 'agent',
+        senderName: `${agent.user?.firstName || ''} ${agent.user?.lastName || ''}`.trim() || agent.agentId,
+        content,
+        isInternal
+      });
+
+      // Update ticket status if needed
+      let statusUpdate = {};
+      if (ticket.status === 'open') {
+        statusUpdate = { status: 'in_progress' };
+      }
+      if (!ticket.assignedTo && agent.permissions.includes('assign_tickets')) {
+        statusUpdate = { ...statusUpdate, assignedTo: agent.id };
+      }
+
+      if (Object.keys(statusUpdate).length > 0) {
+        await storage.updateSupportTicket(id, statusUpdate);
+      }
+
+      console.log(`Agent ${agent.agentId} responded to ticket ${ticket.ticketNumber}`, {
+        messageId: message.id,
+        isInternal,
+        statusUpdate
+      });
+
+      res.status(201).json({
+        message,
+        ticket: await storage.getSupportTicket(id)
+      });
+    } catch (error) {
+      console.error('Failed to add ticket response:', error);
+      res.status(500).json({ message: "Failed to add response" });
+    }
+  });
+
+  // Update ticket (assign, change status, etc.)
+  app.put("/api/agent/tickets/:id", authenticateToken, requireSupportAgent, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { status, assignedTo, priority, resolution } = req.body;
+      const agent = (req as any).agent;
+
+      const ticket = await storage.getSupportTicket(id);
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+
+      // Check permissions for various operations
+      const updates: any = {};
+
+      if (status !== undefined) {
+        if (status === 'closed' && !agent.permissions.includes('close_tickets')) {
+          return res.status(403).json({ message: "Permission denied to close tickets" });
+        }
+        updates.status = status;
+        
+        if (status === 'resolved' || status === 'closed') {
+          updates.resolvedAt = new Date();
+          if (resolution) {
+            updates.resolution = resolution;
+          }
+        }
+      }
+
+      if (assignedTo !== undefined && agent.permissions.includes('assign_tickets')) {
+        updates.assignedTo = assignedTo;
+      }
+
+      if (priority !== undefined && agent.permissions.includes('modify_priority')) {
+        updates.priority = priority;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ message: "No valid updates provided" });
+      }
+
+      const updatedTicket = await storage.updateSupportTicket(id, updates);
+
+      console.log(`Agent ${agent.agentId} updated ticket ${ticket.ticketNumber}`, updates);
+
+      res.json({
+        ticket: updatedTicket,
+        message: "Ticket updated successfully"
+      });
+    } catch (error) {
+      console.error('Failed to update ticket:', error);
+      res.status(500).json({ message: "Failed to update ticket" });
+    }
+  });
+
+  // Get agent dashboard statistics
+  app.get("/api/agent/dashboard", authenticateToken, requireSupportAgent, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const agent = (req as any).agent;
+
+      // Get tickets assigned to this agent
+      const assignedTickets = await storage.getSupportTickets({ assignedTo: agent.id });
+      
+      // Get all tickets in agent's department for overview
+      let departmentFilters: any = {};
+      if (agent.department !== 'all') {
+        departmentFilters.department = agent.department;
+      }
+      const departmentTickets = await storage.getSupportTickets(departmentFilters);
+
+      const stats = {
+        assigned: {
+          total: assignedTickets.length,
+          open: assignedTickets.filter(t => t.status === 'open').length,
+          inProgress: assignedTickets.filter(t => t.status === 'in_progress').length,
+          resolved: assignedTickets.filter(t => t.status === 'resolved').length
+        },
+        department: {
+          total: departmentTickets.length,
+          unassigned: departmentTickets.filter(t => !t.assignedTo).length,
+          urgent: departmentTickets.filter(t => t.priority === 'urgent').length,
+          high: departmentTickets.filter(t => t.priority === 'high').length
+        }
+      };
+
+      res.json({
+        agent: {
+          id: agent.id,
+          agentId: agent.agentId,
+          department: agent.department,
+          permissions: agent.permissions,
+          maxTicketsPerDay: agent.maxTicketsPerDay,
+          responseTimeTarget: agent.responseTimeTarget
+        },
+        statistics: stats,
+        recentTickets: assignedTickets.slice(0, 5).map(ticket => ({
+          id: ticket.id,
+          ticketNumber: ticket.ticketNumber,
+          subject: ticket.subject,
+          status: ticket.status,
+          priority: ticket.priority,
+          createdAt: ticket.createdAt,
+          submitterName: ticket.submitterName
+        }))
+      });
+    } catch (error) {
+      console.error('Failed to fetch agent dashboard:', error);
+      res.status(500).json({ message: "Failed to fetch dashboard data" });
+    }
+  });
+
   // --- Contract Payment ---
   // Contract payment initialization endpoint
   app.post("/api/contracts/:contractId/payment", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
