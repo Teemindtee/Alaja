@@ -65,6 +65,8 @@ import "./lib/i18n"; // Initialize i18n
 import { lazy } from "react";
 import TermsAndConditions from "@/pages/terms-and-conditions";
 import PrivacyPolicy from "@/pages/privacy-policy";
+import AdminVerificationManagement from "./pages/admin/verification-management";
+import Verification from "./pages/verification";
 
 // Dynamically import ResetPassword component
 const ResetPassword = lazy(() => import("@/pages/auth/reset-password"));
@@ -138,6 +140,8 @@ function Router() {
       <Route path="/admin/faq-categories" component={AdminFAQCategories} />
       <Route path="/admin/contact-settings" component={AdminContactSettings} />
       <Route path="/admin/token-packages" component={AdminTokenPackages} />
+      <Route path="/admin/verification-management" component={AdminVerificationManagement} />
+      <Route path="/verification" component={Verification} />
 
       {/* Blog Routes */}
       <Route path="/admin/blog-posts" component={AdminBlogPosts} />

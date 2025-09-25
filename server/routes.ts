@@ -9,7 +9,7 @@ import jwt from "jsonwebtoken";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { insertUserSchema, insertFindSchema, insertProposalSchema, insertReviewSchema, insertMessageSchema, insertBlogPostSchema, insertOrderSubmissionSchema, type Find, finders, faqs } from "@shared/schema";
+import { insertUserSchema, insertFindSchema, insertProposalSchema, insertReviewSchema, insertMessageSchema, insertBlogPostSchema, insertOrderSubmissionSchema, type Find, finders, faqs, withdrawalSettings } from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
 // Payment service imports removed - Paystack and Opay services disabled
@@ -4733,6 +4733,206 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(post);
     } catch (error: any) {
       res.status(400).json({ message: "Failed to fetch blog post", error: error.message });
+    }
+  });
+
+  // --- User Verification Routes ---
+  // Submit verification
+  app.post("/api/verification/submit", authenticateToken, upload.fields([
+    { name: 'documentFront', maxCount: 1 },
+    { name: 'documentBack', maxCount: 1 },
+    { name: 'selfie', maxCount: 1 }
+  ]), async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { documentType } = req.body;
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+      if (!files.documentFront || !files.selfie) {
+        return res.status(400).json({ message: "Document front image and selfie are required" });
+      }
+
+      if (!documentType || !['national_id', 'passport', 'voters_card'].includes(documentType)) {
+        return res.status(400).json({ message: "Valid document type is required" });
+      }
+
+      // Check if user already has a pending or verified verification
+      const existing = await storage.getVerificationByUserId(req.user.userId);
+      if (existing && (existing.status === 'pending' || existing.status === 'verified')) {
+        return res.status(400).json({
+          message: existing.status === 'verified'
+            ? "Your account is already verified"
+            : "You already have a verification request pending review"
+        });
+      }
+
+      const verificationData = {
+        userId: req.user.userId,
+        documentType,
+        documentFrontImage: `/uploads/${files.documentFront[0].filename}`,
+        documentBackImage: files.documentBack ? `/uploads/${files.documentBack[0].filename}` : null,
+        selfieImage: `/uploads/${files.selfie[0].filename}`
+      };
+
+      const verification = await storage.submitVerification(verificationData);
+
+      // Send email notification to user
+      try {
+        const user = await storage.getUser(req.user.userId);
+        if (user) {
+          await emailService.sendVerificationSubmitted(
+            user.email,
+            `${user.firstName} ${user.lastName}`
+          );
+        }
+      } catch (emailError) {
+        console.error('Failed to send verification submission email:', emailError);
+      }
+
+      res.status(201).json({
+        message: "Verification submitted successfully. Your documents are now under review.",
+        verification: {
+          id: verification.id,
+          status: verification.status,
+          submittedAt: verification.submittedAt
+        }
+      });
+    } catch (error) {
+      console.error('Verification submission error:', error);
+      res.status(500).json({ message: "Failed to submit verification" });
+    }
+  });
+
+  // Get user's verification status
+  app.get("/api/verification/status", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const verification = await storage.getVerificationByUserId(req.user.userId);
+      const isRequired = await storage.isVerificationRequired();
+
+      res.json({
+        isRequired,
+        verification: verification ? {
+          id: verification.id,
+          status: verification.status,
+          documentType: verification.documentType,
+          submittedAt: verification.submittedAt,
+          reviewedAt: verification.reviewedAt,
+          rejectionReason: verification.rejectionReason
+        } : null
+      });
+    } catch (error) {
+      console.error('Get verification status error:', error);
+      res.status(500).json({ message: "Failed to get verification status" });
+    }
+  });
+
+  // Admin: Get pending verifications
+  app.get("/api/admin/verifications", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const verifications = await storage.getPendingVerifications();
+      res.json(verifications);
+    } catch (error) {
+      console.error('Get pending verifications error:', error);
+      res.status(500).json({ message: "Failed to get pending verifications" });
+    }
+  });
+
+  // Admin: Get verification details
+  app.get("/api/admin/verifications/:id", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const verification = await storage.getVerificationById(id);
+
+      if (!verification) {
+        return res.status(404).json({ message: "Verification not found" });
+      }
+
+      res.json(verification);
+    } catch (error) {
+      console.error('Get verification details error:', error);
+      res.status(500).json({ message: "Failed to get verification details" });
+    }
+  });
+
+  // Admin: Approve verification
+  app.post("/api/admin/verifications/:id/approve", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const verification = await storage.updateVerificationStatus(id, 'verified', req.user.userId);
+
+      if (!verification) {
+        return res.status(404).json({ message: "Verification not found" });
+      }
+
+      // Send approval email to user
+      try {
+        const user = await storage.getUser(verification.userId);
+        if (user) {
+          await emailService.sendVerificationApproved(
+            user.email,
+            `${user.firstName} ${user.lastName}`
+          );
+        }
+      } catch (emailError) {
+        console.error('Failed to send verification approval email:', emailError);
+      }
+
+      res.json({ message: "Verification approved successfully" });
+    } catch (error) {
+      console.error('Approve verification error:', error);
+      res.status(500).json({ message: "Failed to approve verification" });
+    }
+  });
+
+  // Admin: Reject verification
+  app.post("/api/admin/verifications/:id/reject", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const { reason } = req.body;
+
+      if (!reason || reason.trim().length === 0) {
+        return res.status(400).json({ message: "Rejection reason is required" });
+      }
+
+      const verification = await storage.updateVerificationStatus(id, 'rejected', req.user.userId, reason);
+
+      if (!verification) {
+        return res.status(404).json({ message: "Verification not found" });
+      }
+
+      // Send rejection email to user
+      try {
+        const user = await storage.getUser(verification.userId);
+        if (user) {
+          await emailService.sendVerificationRejected(
+            user.email,
+            `${user.firstName} ${user.lastName}`,
+            reason
+          );
+        }
+      } catch (emailError) {
+        console.error('Failed to send verification rejection email:', emailError);
+      }
+
+      res.json({ message: "Verification rejected successfully" });
+    } catch (error) {
+      console.error('Reject verification error:', error);
+      res.status(500).json({ message: "Failed to reject verification" });
     }
   });
 

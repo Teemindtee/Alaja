@@ -14,6 +14,7 @@ export const users = pgTable("users", {
   phone: text("phone"),
   role: text("role").notNull(), // 'client', 'finder', 'admin'
   isVerified: boolean("is_verified").default(false),
+  identityVerificationStatus: text("identity_verification_status").default("not_verified"), // 'not_verified', 'pending', 'verified', 'rejected'
   isBanned: boolean("is_banned").default(false),
   bannedReason: text("banned_reason"),
   bannedAt: timestamp("banned_at"),
@@ -953,12 +954,29 @@ export const contactSettings = pgTable("contact_settings", {
   updatedAt: timestamp("updated_at").default(sql`now()`)
 });
 
+export const userVerifications = pgTable("user_verifications", {
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: text("user_id").references(() => users.id).notNull().unique(),
+  documentType: text("document_type").notNull(), // 'national_id', 'passport', 'voters_card'
+  documentFrontImage: text("document_front_image").notNull(),
+  documentBackImage: text("document_back_image"),
+  selfieImage: text("selfie_image").notNull(),
+  status: text("status").default("pending"), // 'pending', 'verified', 'rejected'
+  rejectionReason: text("rejection_reason"),
+  reviewedBy: text("reviewed_by").references(() => users.id),
+  submittedAt: timestamp("submitted_at").default(sql`now()`),
+  reviewedAt: timestamp("reviewed_at"),
+  updatedAt: timestamp("updated_at").default(sql`now()`)
+});
+
 export type FAQ = typeof faqs.$inferSelect;
 export type InsertFAQ = typeof faqs.$inferInsert;
 export type FAQCategory = typeof faqCategories.$inferSelect;
 export type InsertFAQCategory = typeof faqCategories.$inferInsert;
 export type ContactSettings = typeof contactSettings.$inferSelect;
 export type InsertContactSettings = typeof contactSettings.$inferInsert;
+export type UserVerification = typeof userVerifications.$inferSelect;
+export type InsertUserVerification = typeof userVerifications.$inferInsert;</old_str>
 
 export const insertFAQSchema = createInsertSchema(faqs).omit({
   id: true,
@@ -976,6 +994,13 @@ export const insertContactSettingsSchema = createInsertSchema(contactSettings).o
   id: true,
   updatedAt: true,
 });
+
+export const insertUserVerificationSchema = createInsertSchema(userVerifications).omit({
+  id: true,
+  submittedAt: true,
+  reviewedAt: true,
+  updatedAt: true,
+});</old_str>
 
 // Restricted Words Types
 export type RestrictedWord = InferSelectModel<typeof restrictedWords>;

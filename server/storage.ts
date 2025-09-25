@@ -85,6 +85,7 @@ import {
   supportDepartments,
   contactSettings,
   faqCategories,
+  userVerifications,
   type SupportAgent,
   type SupportTicket,
   type SupportTicketMessage,
@@ -92,6 +93,8 @@ import {
   type InsertSupportAgent,
   type InsertSupportTicket,
   type InsertSupportDepartment,
+  type UserVerification,
+  type InsertUserVerification,</old_str>
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, asc } from "drizzle-orm";
@@ -330,6 +333,14 @@ export interface IStorage {
   createFAQCategory(category: any): Promise<any>;
   updateFAQCategory(id: string, updates: any): Promise<any>;
   deleteFAQCategory(id: string): Promise<boolean>;
+
+  // User Verification operations
+  submitVerification(verification: any): Promise<any>;
+  getVerificationByUserId(userId: string): Promise<any>;
+  getPendingVerifications(): Promise<any[]>;
+  updateVerificationStatus(id: string, status: string, reviewedBy: string, rejectionReason?: string): Promise<any>;
+  getVerificationById(id: string): Promise<any>;
+  isVerificationRequired(): Promise<boolean>;</old_str>
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2865,6 +2876,158 @@ export class DatabaseStorage implements IStorage {
       return result.rowCount > 0;
     } catch (error) {
       console.error('Error deleting FAQ category:', error);
+      return false;
+    }
+  }
+
+  // User Verification operations
+  async submitVerification(verificationData: any): Promise<any> {
+    try {
+      const [verification] = await db
+        .insert(userVerifications)
+        .values({
+          ...verificationData,
+          status: 'pending',
+          updatedAt: new Date()
+        })
+        .returning();
+
+      // Update user's verification status
+      await db
+        .update(users)
+        .set({ identityVerificationStatus: 'pending' })
+        .where(eq(users.id, verificationData.userId));
+
+      return verification;
+    } catch (error) {
+      console.error('Error submitting verification:', error);
+      throw error;
+    }
+  }
+
+  async getVerificationByUserId(userId: string): Promise<any> {
+    try {
+      const [verification] = await db
+        .select()
+        .from(userVerifications)
+        .where(eq(userVerifications.userId, userId))
+        .limit(1);
+      return verification;
+    } catch (error) {
+      console.error('Error getting verification by user ID:', error);
+      return null;
+    }
+  }
+
+  async getPendingVerifications(): Promise<any[]> {
+    try {
+      const verifications = await db
+        .select({
+          id: userVerifications.id,
+          userId: userVerifications.userId,
+          documentType: userVerifications.documentType,
+          documentFrontImage: userVerifications.documentFrontImage,
+          documentBackImage: userVerifications.documentBackImage,
+          selfieImage: userVerifications.selfieImage,
+          status: userVerifications.status,
+          submittedAt: userVerifications.submittedAt,
+          user: {
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            email: users.email,
+            role: users.role
+          }
+        })
+        .from(userVerifications)
+        .innerJoin(users, eq(userVerifications.userId, users.id))
+        .where(eq(userVerifications.status, 'pending'))
+        .orderBy(desc(userVerifications.submittedAt));
+
+      return verifications;
+    } catch (error) {
+      console.error('Error getting pending verifications:', error);
+      return [];
+    }
+  }
+
+  async updateVerificationStatus(id: string, status: string, reviewedBy: string, rejectionReason?: string): Promise<any> {
+    try {
+      const updateData: any = {
+        status,
+        reviewedBy,
+        reviewedAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      if (rejectionReason) {
+        updateData.rejectionReason = rejectionReason;
+      }
+
+      const [verification] = await db
+        .update(userVerifications)
+        .set(updateData)
+        .where(eq(userVerifications.id, id))
+        .returning();
+
+      if (verification) {
+        // Update user's verification status
+        await db
+          .update(users)
+          .set({ 
+            identityVerificationStatus: status,
+            isVerified: status === 'verified' // Update legacy isVerified field
+          })
+          .where(eq(users.id, verification.userId));
+      }
+
+      return verification;
+    } catch (error) {
+      console.error('Error updating verification status:', error);
+      throw error;
+    }
+  }
+
+  async getVerificationById(id: string): Promise<any> {
+    try {
+      const [verification] = await db
+        .select({
+          id: userVerifications.id,
+          userId: userVerifications.userId,
+          documentType: userVerifications.documentType,
+          documentFrontImage: userVerifications.documentFrontImage,
+          documentBackImage: userVerifications.documentBackImage,
+          selfieImage: userVerifications.selfieImage,
+          status: userVerifications.status,
+          rejectionReason: userVerifications.rejectionReason,
+          submittedAt: userVerifications.submittedAt,
+          reviewedAt: userVerifications.reviewedAt,
+          user: {
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            email: users.email,
+            role: users.role
+          }
+        })
+        .from(userVerifications)
+        .innerJoin(users, eq(userVerifications.userId, users.id))
+        .where(eq(userVerifications.id, id))
+        .limit(1);
+
+      return verification;
+    } catch (error) {
+      console.error('Error getting verification by ID:', error);
+      return null;
+    }
+  }
+
+  async isVerificationRequired(): Promise<boolean> {
+    try {
+      const setting = await this.getAdminSetting('verification_required');
+      return setting?.value === 'true';
+    } catch (error) {
+      console.error('Error checking verification requirement:', error);
       return false;
     }
   }

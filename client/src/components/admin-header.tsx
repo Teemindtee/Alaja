@@ -49,8 +49,9 @@ export default function AdminHeader({ currentPage }: AdminHeaderProps) {
       ]
     },
     { path: "/admin/restricted-words", label: "Restricted Words", icon: Shield, id: "restricted-words" },
+    { path: "/admin/verification-management", label: "Verification", icon: Shield, id: "verification" },
     { path: "/admin/blog-posts", label: "Blog Posts", icon: FileText, id: "blog-posts" },
-    { path: "/admin/categories", label: "Categories", icon: Tags, id: "categories" },
+    { path: "/admin/categories", label: "Categories", icon: Tags, id: "categories" },</old_str>
     { 
       path: "/admin/faq-management", 
       icon: HelpCircle, 

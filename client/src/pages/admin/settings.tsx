@@ -1,26 +1,29 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import AdminHeader from "@/components/admin-header";
-import { 
-  Settings, 
-  Save, 
-  Banknote, 
+import {
+  Settings,
+  Save,
+  Banknote,
   Coins,
   AlertCircle,
   CheckCircle2,
   Percent,
   CreditCard,
   TrendingUp,
-  Target
+  Target,
+  Shield
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { Switch } from "@/components/ui/switch";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface AdminSettings {
   proposalTokenCost: string;
@@ -30,6 +33,7 @@ interface AdminSettings {
   finderEarningsChargePercentage: string;
   highBudgetThreshold: string;
   highBudgetTokenCost: string;
+  verificationRequired: string;
 }
 
 export default function AdminSettings() {
@@ -43,7 +47,20 @@ export default function AdminSettings() {
   const [finderEarningsChargePercentage, setFinderEarningsChargePercentage] = useState("");
   const [highBudgetThreshold, setHighBudgetThreshold] = useState("");
   const [highBudgetTokenCost, setHighBudgetTokenCost] = useState("");
+  const [verificationRequired, setVerificationRequired] = useState("false");
   const [hasChanges, setHasChanges] = useState(false);
+
+  // State for form data, including the new verificationRequired field
+  const [formData, setFormData] = useState({
+    proposalTokenCost: '',
+    findertokenPrice: '',
+    platformFeePercentage: '',
+    clientPaymentChargePercentage: '',
+    finderEarningsChargePercentage: '',
+    highBudgetThreshold: '',
+    highBudgetTokenCost: '',
+    verificationRequired: 'false'
+  });
 
   // Fetch admin settings
   const { data: settings, isLoading: settingsLoading } = useQuery<AdminSettings>({
@@ -61,6 +78,19 @@ export default function AdminSettings() {
       setFinderEarningsChargePercentage(settings.finderEarningsChargePercentage || "5");
       setHighBudgetThreshold(settings.highBudgetThreshold || "100000");
       setHighBudgetTokenCost(settings.highBudgetTokenCost || "5");
+      setVerificationRequired(settings.verificationRequired || 'false'); // Set initial value for verificationRequired
+
+      // Update formData state as well
+      setFormData({
+        proposalTokenCost: settings.proposalTokenCost || "1",
+        findertokenPrice: settings.findertokenPrice || "100",
+        platformFeePercentage: settings.platformFeePercentage || "10",
+        clientPaymentChargePercentage: settings.clientPaymentChargePercentage || "2.5",
+        finderEarningsChargePercentage: settings.finderEarningsChargePercentage || "5",
+        highBudgetThreshold: settings.highBudgetThreshold || "100000",
+        highBudgetTokenCost: settings.highBudgetTokenCost || "5",
+        verificationRequired: settings.verificationRequired || 'false' // Set initial value for verificationRequired in formData
+      });
     }
   }, [settings]);
 
@@ -74,20 +104,24 @@ export default function AdminSettings() {
       const hasFinderChargeChange = finderEarningsChargePercentage !== (settings.finderEarningsChargePercentage || "5");
       const hasHighBudgetThresholdChange = highBudgetThreshold !== (settings.highBudgetThreshold || "100000");
       const hasHighBudgetTokenCostChange = highBudgetTokenCost !== (settings.highBudgetTokenCost || "5");
-      setHasChanges(hasTokenCostChange || hasPriceChange || hasPlatformFeeChange || hasClientChargeChange || hasFinderChargeChange || hasHighBudgetThresholdChange || hasHighBudgetTokenCostChange);
+      // Track changes for verificationRequired
+      const hasVerificationChange = verificationRequired !== (settings.verificationRequired || 'false');
+
+      setHasChanges(hasTokenCostChange || hasPriceChange || hasPlatformFeeChange || hasClientChargeChange || hasFinderChargeChange || hasHighBudgetThresholdChange || hasHighBudgetTokenCostChange || hasVerificationChange);
     }
-  }, [proposalTokenCost, findertokenPrice, platformFeePercentage, clientPaymentChargePercentage, finderEarningsChargePercentage, highBudgetThreshold, highBudgetTokenCost, settings]);
+  }, [proposalTokenCost, findertokenPrice, platformFeePercentage, clientPaymentChargePercentage, finderEarningsChargePercentage, highBudgetThreshold, highBudgetTokenCost, verificationRequired, settings]);
 
   // Update settings mutation
   const updateSettingsMutation = useMutation({
-    mutationFn: async (data: { 
-      proposalTokenCost?: string; 
+    mutationFn: async (data: {
+      proposalTokenCost?: string;
       findertokenPrice?: string;
       platformFeePercentage?: string;
       clientPaymentChargePercentage?: string;
       finderEarningsChargePercentage?: string;
       highBudgetThreshold?: string;
       highBudgetTokenCost?: string;
+      verificationRequired?: string; // Add verificationRequired to mutation
     }) => {
       return await apiRequest('/api/admin/settings', {
         method: 'PUT',
@@ -120,7 +154,8 @@ export default function AdminSettings() {
       clientPaymentChargePercentage,
       finderEarningsChargePercentage,
       highBudgetThreshold,
-      highBudgetTokenCost
+      highBudgetTokenCost,
+      verificationRequired // Include verificationRequired in the update
     });
   };
 
@@ -143,7 +178,7 @@ export default function AdminSettings() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <AdminHeader currentPage="settings" />
-      
+
       <div className="max-w-4xl mx-auto p-8">
         {/* Header */}
         <div className="mb-8">
@@ -165,7 +200,7 @@ export default function AdminSettings() {
               Configure proposal costs and findertoken pricing for the platform
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent>
             <form onSubmit={handleUpdateSettings} className="space-y-8">
               <div className="grid md:grid-cols-2 gap-8">
@@ -285,13 +320,44 @@ export default function AdminSettings() {
 
               <Separator className="my-8" />
 
+              {/* Verification Settings */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Identity Verification Settings</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="verificationRequired">Require Identity Verification</Label>
+                      <p className="text-sm text-gray-600">When enabled, users must verify their identity before posting finds or applying to finds</p>
+                    </div>
+                    <Switch
+                      id="verificationRequired"
+                      checked={verificationRequired === 'true'}
+                      onCheckedChange={(checked) => {
+                        setVerificationRequired(checked ? 'true' : 'false');
+                        setFormData(prev => ({ ...prev, verificationRequired: checked ? 'true' : 'false' }));
+                      }}
+                    />
+                  </div>
+                  {verificationRequired === 'true' && (
+                    <Alert>
+                      <Shield className="h-4 w-4" />
+                      <AlertDescription>
+                        Identity verification is required. Users will need to submit government-issued ID documents and complete manual verification before accessing core features.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
+
               {/* Platform Charges Section */}
               <div className="space-y-6">
                 <h3 className="text-lg font-semibold text-slate-800 flex items-center">
                   <CreditCard className="w-5 h-5 mr-2 text-purple-600" />
                   Platform Charges & Fees
                 </h3>
-                
+
                 <div className="grid md:grid-cols-3 gap-6">
                   {/* Platform Fee Percentage */}
                   <div className="space-y-3">
@@ -422,7 +488,7 @@ export default function AdminSettings() {
 
               {/* Save Button */}
               <div className="flex justify-end pt-4">
-                <Button 
+                <Button
                   type="submit"
                   size="lg"
                   disabled={updateSettingsMutation.isPending || !hasChanges}
