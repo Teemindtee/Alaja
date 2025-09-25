@@ -804,6 +804,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Finder profile not found" });
       }
 
+      // Check if finder is verified
+      const finderUser = await storage.getUser(req.user.userId);
+      if (!finderUser || !finderUser.isVerified || !finder.isVerified) {
+        return res.status(403).json({
+          message: "Account verification required. You must verify your account before submitting proposals.",
+          verified: false,
+          verificationRequired: true
+        });
+      }
+
+      // Check profile completion requirement (100%)
+      const profileCompletion = await storage.calculateFinderProfileCompletion(finder.id);
+      if (profileCompletion.completionPercentage < 100) {
+        return res.status(403).json({
+          message: "Profile completion required. You must complete 100% of your profile before submitting proposals.",
+          profileComplete: false,
+          completionPercentage: profileCompletion.completionPercentage,
+          missingFields: profileCompletion.missingFields,
+          profileCompletionRequired: true
+        });
+      }
+
       const proposalData = insertProposalSchema.parse({
         ...req.body,
         finderId: finder.id
