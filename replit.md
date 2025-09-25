@@ -6,6 +6,8 @@ FinderMeister is a full-stack service marketplace platform designed to connect c
 - **Client Profile Page**: Completely redesigned with ultra-modern, clean, crispy design featuring animated gradient backgrounds, premium glass-morphism cards, enhanced mobile responsiveness, inline editing system, and comprehensive account management features.
 - **Withdrawal Balance Fix**: Resolved critical issue where negative balances (₦-2272.50) were displayed, implemented proper balance validation, and reset affected balances to zero with Math.max(0, balance) protection.
 - **Logout Redirect Enhancement**: Fixed logout functionality to redirect immediately to home page without showing flash of empty data or current page content during logout process.
+- **Flutterwave Integration**: Successfully migrated from Paystack to Flutterwave for payment processing, including automatic withdrawal system for finders with direct bank account transfers.
+- **Admin Contact Settings**: Enhanced admin dashboard with comprehensive contact information management including phone, email, address, social media links, and support response times.
 
 # User Preferences
 
@@ -109,5 +111,7 @@ User feedback: Frustrated with back-and-forth iterations - requires working solu
 ## Routing & Navigation
 - **Wouter**: Lightweight React router.
 
-## Payment Processing (Planned)
-- **Paystack**: Intended for token purchases and escrow transactions.
+## Payment Processing
+- **Flutterwave**: Integrated for token purchases, escrow transactions, and automatic withdrawal processing.
+- **Automatic Withdrawals**: Finder withdrawals are automatically processed via Flutterwave bank transfers with webhook status updates.
+- **Bank Transfer Support**: Direct bank account withdrawals for finders with automatic processing and status tracking.
