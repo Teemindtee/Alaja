@@ -94,6 +94,11 @@ export default function AdminDashboardModern() {
     return ((current - previous) / previous * 100);
   };
 
+  const formatCurrency = (amount: string | number | null | undefined) => {
+    if (!amount) return '₦0';
+    return `₦${parseFloat(amount.toString()).toLocaleString()}`;
+  };
+
   // Calculate dashboard stats
   const stats: DashboardStats = {
     totalUsers: users.length,
@@ -130,11 +135,6 @@ export default function AdminDashboardModern() {
   const recentUsers = users
     .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
     .slice(0, 5);
-
-  const formatCurrency = (amount: string | number | null | undefined) => {
-    if (!amount) return '₦0';
-    return `₦${parseFloat(amount.toString()).toLocaleString()}`;
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
