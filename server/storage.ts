@@ -341,6 +341,19 @@ export interface IStorage {
   updateVerificationStatus(id: string, status: string, reviewedBy: string, rejectionReason?: string): Promise<any>;
   getVerificationById(id: string): Promise<any>;
   isVerificationRequired(): Promise<boolean>;
+
+  // Support Ticket operations
+  createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket>;
+  getSupportTickets(filters?: { status?: string; department?: string; assignedTo?: string; priority?: string }): Promise<Array<SupportTicket & { submitter?: { firstName: string; lastName: string; email: string; }; assignedAgent?: { agentId: string; user: { firstName: string; lastName: string; } }; }>>;
+  getSupportTicket(id: string): Promise<SupportTicket & { submitter?: { firstName: string; lastName: string; email: string; }; assignedAgent?: { agentId: string; user: { firstName: string; lastName: string; } }; } | undefined>;
+  updateSupportTicket(id: string, updates: Partial<SupportTicket>): Promise<SupportTicket | undefined>;
+  deleteSupportTicket(id: string): Promise<boolean>;
+  generateTicketNumber(): Promise<string>;
+  
+  // Support Ticket Message operations
+  createSupportTicketMessage(message: { ticketId: string; senderId?: string; senderType: string; senderName: string; senderEmail?: string; content: string; attachments?: string[]; isInternal?: boolean; }): Promise<SupportTicketMessage>;
+  getSupportTicketMessages(ticketId: string): Promise<Array<SupportTicketMessage & { sender?: { firstName: string; lastName: string; } }>>;
+  markTicketMessageAsRead(messageId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3081,6 +3094,286 @@ export class DatabaseStorage implements IStorage {
   async removeRestrictedWord(id: string): Promise<boolean> {
     const result = await db.delete(restrictedWords).where(eq(restrictedWords.id, id));
     return result.rowCount > 0;
+  }
+
+  // Support Ticket operations
+  async generateTicketNumber(): Promise<string> {
+    const now = new Date();
+    const prefix = 'TK';
+    const timestamp = now.getTime().toString().slice(-8); // Last 8 digits of timestamp
+    return `${prefix}${timestamp}`;
+  }
+
+  async createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket> {
+    const [createdTicket] = await db
+      .insert(supportTickets)
+      .values(ticket)
+      .returning();
+    return createdTicket;
+  }
+
+  async getSupportTickets(filters?: { status?: string; department?: string; assignedTo?: string; priority?: string }): Promise<Array<SupportTicket & { submitter?: { firstName: string; lastName: string; email: string; }; assignedAgent?: { agentId: string; user: { firstName: string; lastName: string; } }; }>> {
+    let query = db
+      .select({
+        // Support ticket fields
+        id: supportTickets.id,
+        ticketNumber: supportTickets.ticketNumber,
+        submitterName: supportTickets.submitterName,
+        submitterEmail: supportTickets.submitterEmail,
+        submitterId: supportTickets.submitterId,
+        category: supportTickets.category,
+        priority: supportTickets.priority,
+        department: supportTickets.department,
+        subject: supportTickets.subject,
+        description: supportTickets.description,
+        status: supportTickets.status,
+        assignedTo: supportTickets.assignedTo,
+        resolvedAt: supportTickets.resolvedAt,
+        resolution: supportTickets.resolution,
+        satisfactionRating: supportTickets.satisfactionRating,
+        satisfactionFeedback: supportTickets.satisfactionFeedback,
+        createdAt: supportTickets.createdAt,
+        updatedAt: supportTickets.updatedAt,
+        // Submitter info (if user exists)
+        submitter: {
+          firstName: sql<string>`submitter_users.first_name`,
+          lastName: sql<string>`submitter_users.last_name`,
+          email: sql<string>`submitter_users.email`
+        },
+        // Assigned agent info
+        assignedAgent: {
+          agentId: sql<string>`agents.agent_id`,
+          user: {
+            firstName: sql<string>`agent_users.first_name`,
+            lastName: sql<string>`agent_users.last_name`
+          }
+        }
+      })
+      .from(supportTickets)
+      .leftJoin(sql`users as submitter_users`, sql`support_tickets.submitter_id = submitter_users.id`)
+      .leftJoin(sql`support_agents as agents`, sql`support_tickets.assigned_to = agents.id`)
+      .leftJoin(sql`users as agent_users`, sql`agents.user_id = agent_users.id`);
+
+    // Apply filters
+    if (filters?.status) {
+      query = query.where(eq(supportTickets.status, filters.status));
+    }
+    if (filters?.department) {
+      query = query.where(eq(supportTickets.department, filters.department));
+    }
+    if (filters?.assignedTo) {
+      query = query.where(eq(supportTickets.assignedTo, filters.assignedTo));
+    }
+    if (filters?.priority) {
+      query = query.where(eq(supportTickets.priority, filters.priority));
+    }
+
+    const results = await query.orderBy(desc(supportTickets.createdAt));
+
+    return results.map(row => ({
+      id: row.id,
+      ticketNumber: row.ticketNumber,
+      submitterName: row.submitterName,
+      submitterEmail: row.submitterEmail,
+      submitterId: row.submitterId,
+      category: row.category,
+      priority: row.priority,
+      department: row.department,
+      subject: row.subject,
+      description: row.description,
+      status: row.status,
+      assignedTo: row.assignedTo,
+      resolvedAt: row.resolvedAt,
+      resolution: row.resolution,
+      satisfactionRating: row.satisfactionRating,
+      satisfactionFeedback: row.satisfactionFeedback,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      submitter: row.submitter.firstName ? {
+        firstName: row.submitter.firstName,
+        lastName: row.submitter.lastName,
+        email: row.submitter.email
+      } : undefined,
+      assignedAgent: row.assignedAgent.agentId ? {
+        agentId: row.assignedAgent.agentId,
+        user: {
+          firstName: row.assignedAgent.user.firstName,
+          lastName: row.assignedAgent.user.lastName
+        }
+      } : undefined
+    }));
+  }
+
+  async getSupportTicket(id: string): Promise<SupportTicket & { submitter?: { firstName: string; lastName: string; email: string; }; assignedAgent?: { agentId: string; user: { firstName: string; lastName: string; } }; } | undefined> {
+    const [result] = await db
+      .select({
+        // Support ticket fields
+        id: supportTickets.id,
+        ticketNumber: supportTickets.ticketNumber,
+        submitterName: supportTickets.submitterName,
+        submitterEmail: supportTickets.submitterEmail,
+        submitterId: supportTickets.submitterId,
+        category: supportTickets.category,
+        priority: supportTickets.priority,
+        department: supportTickets.department,
+        subject: supportTickets.subject,
+        description: supportTickets.description,
+        status: supportTickets.status,
+        assignedTo: supportTickets.assignedTo,
+        resolvedAt: supportTickets.resolvedAt,
+        resolution: supportTickets.resolution,
+        satisfactionRating: supportTickets.satisfactionRating,
+        satisfactionFeedback: supportTickets.satisfactionFeedback,
+        createdAt: supportTickets.createdAt,
+        updatedAt: supportTickets.updatedAt,
+        // Submitter info (if user exists)
+        submitter: {
+          firstName: sql<string>`submitter_users.first_name`,
+          lastName: sql<string>`submitter_users.last_name`,
+          email: sql<string>`submitter_users.email`
+        },
+        // Assigned agent info
+        assignedAgent: {
+          agentId: sql<string>`agents.agent_id`,
+          user: {
+            firstName: sql<string>`agent_users.first_name`,
+            lastName: sql<string>`agent_users.last_name`
+          }
+        }
+      })
+      .from(supportTickets)
+      .leftJoin(sql`users as submitter_users`, sql`support_tickets.submitter_id = submitter_users.id`)
+      .leftJoin(sql`support_agents as agents`, sql`support_tickets.assigned_to = agents.id`)
+      .leftJoin(sql`users as agent_users`, sql`agents.user_id = agent_users.id`)
+      .where(eq(supportTickets.id, id))
+      .limit(1);
+
+    if (!result) {
+      return undefined;
+    }
+
+    return {
+      id: result.id,
+      ticketNumber: result.ticketNumber,
+      submitterName: result.submitterName,
+      submitterEmail: result.submitterEmail,
+      submitterId: result.submitterId,
+      category: result.category,
+      priority: result.priority,
+      department: result.department,
+      subject: result.subject,
+      description: result.description,
+      status: result.status,
+      assignedTo: result.assignedTo,
+      resolvedAt: result.resolvedAt,
+      resolution: result.resolution,
+      satisfactionRating: result.satisfactionRating,
+      satisfactionFeedback: result.satisfactionFeedback,
+      createdAt: result.createdAt,
+      updatedAt: result.updatedAt,
+      submitter: result.submitter.firstName ? {
+        firstName: result.submitter.firstName,
+        lastName: result.submitter.lastName,
+        email: result.submitter.email
+      } : undefined,
+      assignedAgent: result.assignedAgent.agentId ? {
+        agentId: result.assignedAgent.agentId,
+        user: {
+          firstName: result.assignedAgent.user.firstName,
+          lastName: result.assignedAgent.user.lastName
+        }
+      } : undefined
+    };
+  }
+
+  async updateSupportTicket(id: string, updates: Partial<SupportTicket>): Promise<SupportTicket | undefined> {
+    const [ticket] = await db
+      .update(supportTickets)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(supportTickets.id, id))
+      .returning();
+    return ticket || undefined;
+  }
+
+  async deleteSupportTicket(id: string): Promise<boolean> {
+    const result = await db.delete(supportTickets).where(eq(supportTickets.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  // Support Ticket Message operations
+  async createSupportTicketMessage(message: { ticketId: string; senderId?: string; senderType: string; senderName: string; senderEmail?: string; content: string; attachments?: string[]; isInternal?: boolean; }): Promise<SupportTicketMessage> {
+    const [createdMessage] = await db
+      .insert(supportTicketMessages)
+      .values({
+        ticketId: message.ticketId,
+        senderId: message.senderId || null,
+        senderType: message.senderType,
+        senderName: message.senderName,
+        senderEmail: message.senderEmail || null,
+        content: message.content,
+        attachments: message.attachments || [],
+        isInternal: message.isInternal || false
+      })
+      .returning();
+    return createdMessage;
+  }
+
+  async getSupportTicketMessages(ticketId: string): Promise<Array<SupportTicketMessage & { sender?: { firstName: string; lastName: string; } }>> {
+    const results = await db
+      .select({
+        id: supportTicketMessages.id,
+        ticketId: supportTicketMessages.ticketId,
+        senderId: supportTicketMessages.senderId,
+        senderType: supportTicketMessages.senderType,
+        senderName: supportTicketMessages.senderName,
+        senderEmail: supportTicketMessages.senderEmail,
+        content: supportTicketMessages.content,
+        attachments: supportTicketMessages.attachments,
+        isInternal: supportTicketMessages.isInternal,
+        createdAt: supportTicketMessages.createdAt,
+        sender: {
+          firstName: sql<string>`users.first_name`,
+          lastName: sql<string>`users.last_name`
+        }
+      })
+      .from(supportTicketMessages)
+      .leftJoin(users, eq(supportTicketMessages.senderId, users.id))
+      .where(eq(supportTicketMessages.ticketId, ticketId))
+      .orderBy(asc(supportTicketMessages.createdAt));
+
+    return results.map(row => ({
+      id: row.id,
+      ticketId: row.ticketId,
+      senderId: row.senderId,
+      senderType: row.senderType,
+      senderName: row.senderName,
+      senderEmail: row.senderEmail,
+      content: row.content,
+      attachments: row.attachments,
+      isInternal: row.isInternal,
+      createdAt: row.createdAt,
+      sender: row.sender.firstName ? {
+        firstName: row.sender.firstName,
+        lastName: row.sender.lastName
+      } : undefined
+    }));
+  }
+
+  async markTicketMessageAsRead(messageId: string): Promise<void> {
+    // This might be implemented later if we add read status to messages
+    // For now, we'll just update the ticket's updatedAt timestamp
+    const message = await db
+      .select({ ticketId: supportTicketMessages.ticketId })
+      .from(supportTicketMessages)
+      .where(eq(supportTicketMessages.id, messageId))
+      .limit(1);
+
+    if (message.length > 0) {
+      await db
+        .update(supportTickets)
+        .set({ updatedAt: new Date() })
+        .where(eq(supportTickets.id, message[0].ticketId));
+    }
   }
 }
 
