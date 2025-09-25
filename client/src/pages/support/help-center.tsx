@@ -5,39 +5,89 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Search, 
-  User, 
-  FileText, 
-  CreditCard, 
-  Shield, 
+import {
+  Search,
+  User,
+  FileText,
+  CreditCard,
+  Shield,
   MessageSquare,
   ChevronRight,
   HelpCircle,
   Phone,
   Mail,
-  Clock
+  Clock,
+  Home,
+  DollarSign,
+  ReceiptText,
+  Users,
+  Lock,
+  Award,
+  Activity,
+  CloudUpload,
+  Calendar,
+  Cog,
+  Wifi,
+  Laptop,
+  Scan
 } from "lucide-react";
 import type { FAQ } from "@shared/schema";
 
+// Mapping of icon names to Lucide React components
+const iconMap: { [key: string]: React.ElementType } = {
+  User,
+  CreditCard,
+  MessageSquare,
+  FileText,
+  Shield,
+  HelpCircle,
+  Home,
+  DollarSign,
+  ReceiptText,
+  Users,
+  Lock,
+  Award,
+  Activity,
+  CloudUpload,
+  Calendar,
+  Cog,
+  Wifi,
+  Laptop,
+  Scan
+};
 
+// Define the expected type for categories
+interface Category {
+  id: string;
+  name: string;
+  icon: string; // Name of the icon from iconMap
+  color: string;
+  description?: string;
+}
 
-const categories = [
-  { name: "Getting Started", icon: User, color: "bg-blue-100 text-blue-800" },
-  { name: "Tokens & Payments", icon: CreditCard, color: "bg-green-100 text-green-800" },
-  { name: "Communication", icon: MessageSquare, color: "bg-purple-100 text-purple-800" },
-  { name: "Work Completion", icon: FileText, color: "bg-orange-100 text-orange-800" },
-  { name: "Account Management", icon: Shield, color: "bg-gray-100 text-gray-800" },
-  { name: "Gamification", icon: HelpCircle, color: "bg-indigo-100 text-indigo-800" }
-];
+// Placeholder for categories, to be replaced by fetched data
+// const categories = [
+//   { name: "Getting Started", icon: User, color: "bg-blue-100 text-blue-800" },
+//   { name: "Tokens & Payments", icon: CreditCard, color: "bg-green-100 text-green-800" },
+//   { name: "Communication", icon: MessageSquare, color: "bg-purple-100 text-purple-800" },
+//   { name: "Work Completion", icon: FileText, color: "bg-orange-100 text-orange-800" },
+//   { name: "Account Management", icon: Shield, color: "bg-gray-100 text-gray-800" },
+//   { name: "Gamification", icon: HelpCircle, color: "bg-indigo-100 text-indigo-800" }
+// ];
 
 export default function HelpCenter() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [expandedFAQ, setExpandedFAQ] = useState<string | null>(null);
 
-  const { data: faqs = [], isLoading } = useQuery<FAQ[]>({
+  const { data: faqs = [], isLoading: isLoadingFaqs } = useQuery<FAQ[]>({
     queryKey: ['/api/public/faqs'],
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Fetch categories from the API
+  const { data: categories = [], isLoading: isLoadingCategories } = useQuery<Category[]>({
+    queryKey: ['/api/public/categories'],
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -51,6 +101,17 @@ export default function HelpCenter() {
     return matchesSearch && matchesCategory;
   });
 
+  // Pre-calculate category counts for display
+  const categoryFaqCounts = categories.reduce((acc, category) => {
+    acc[category.name] = faqs.filter(faq => faq.category === category.name && faq.isActive).length;
+    return acc;
+  }, {} as Record<string, number>);
+
+
+  if (isLoadingFaqs || isLoadingCategories) {
+    return <div className="min-h-screen flex items-center justify-center">Loading Help Center...</div>;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -61,7 +122,7 @@ export default function HelpCenter() {
             <p className="text-xl text-gray-600 mb-8">
               Find answers to common questions and get support for using FinderMeister
             </p>
-            
+
             {/* Search */}
             <div className="max-w-2xl mx-auto relative">
               <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
@@ -93,10 +154,10 @@ export default function HelpCenter() {
                   All Categories
                 </Button>
                 {categories.map((category) => {
-                  const Icon = category.icon;
+                  const Icon = iconMap[category.icon as keyof typeof iconMap] || HelpCircle;
                   return (
                     <Button
-                      key={category.name}
+                      key={category.id}
                       variant={selectedCategory === category.name ? "default" : "ghost"}
                       className="w-full justify-start"
                       onClick={() => setSelectedCategory(category.name)}
@@ -142,30 +203,33 @@ export default function HelpCenter() {
             {!selectedCategory && !searchTerm && (
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Browse by Category</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {categories.map((category) => {
-                    const Icon = category.icon;
-                    const categoryFAQs = faqs.filter(faq => faq.category === category.name);
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                  {categories.map((category: any) => {
+                    const IconComponent = iconMap[category.icon as keyof typeof iconMap] || HelpCircle;
+                    const categoryFAQs = faqs.filter(faq => faq.category === category.name && faq.isActive);
+
                     return (
-                      <Card 
-                        key={category.name}
-                        className="cursor-pointer hover:shadow-md transition-shadow"
+                      <Card
+                        key={category.id}
+                        className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-blue-200"
                         onClick={() => setSelectedCategory(category.name)}
                       >
-                        <CardContent className="p-6">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                              <div className={`p-2 rounded-lg ${category.color}`}>
-                                <Icon className="w-5 h-5" />
-                              </div>
-                              <div>
-                                <h3 className="font-semibold text-gray-900">{category.name}</h3>
-                                <p className="text-sm text-gray-600">{categoryFAQs.length} articles</p>
-                              </div>
+                        <CardHeader>
+                          <div className="flex items-center space-x-3">
+                            <div className={`p-3 rounded-lg ${category.color}`}>
+                              <IconComponent className="w-6 h-6" />
                             </div>
-                            <ChevronRight className="w-5 h-5 text-gray-400" />
+                            <div>
+                              <CardTitle className="text-lg">{category.name}</CardTitle>
+                              <p className="text-sm text-gray-600 mt-1">
+                                {categoryFaqCounts[category.name] || 0} question{categoryFaqCounts[category.name] !== 1 ? 's' : ''}
+                              </p>
+                              {category.description && (
+                                <p className="text-xs text-gray-500 mt-1">{category.description}</p>
+                              )}
+                            </div>
                           </div>
-                        </CardContent>
+                        </CardHeader>
                       </Card>
                     );
                   })}
@@ -205,7 +269,7 @@ export default function HelpCenter() {
                     const category = categories.find(c => c.name === faq.category);
                     return (
                       <Card key={faq.id}>
-                        <CardHeader 
+                        <CardHeader
                           className="cursor-pointer"
                           onClick={() => setExpandedFAQ(expandedFAQ === faq.id ? null : faq.id)}
                         >
@@ -222,7 +286,7 @@ export default function HelpCenter() {
                                 )}
                               </div>
                             </div>
-                            <ChevronRight 
+                            <ChevronRight
                               className={`w-5 h-5 text-gray-400 transition-transform ${
                                 expandedFAQ === faq.id ? 'rotate-90' : ''
                               }`}

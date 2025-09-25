@@ -7,9 +7,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
-import { User, Users, Settings, FileText, LogOut, BarChart3, MessageSquare, DollarSign, Tags, Edit, Menu, ChevronDown, TrendingUp, Coins, Shield, Package, HeadphonesIcon, HelpCircle } from "lucide-react";
+import { User, Users, Settings, FileText, LogOut, BarChart3, MessageSquare, DollarSign, Tags, Edit, Menu, ChevronDown, TrendingUp, Coins, Shield, Package, HeadphonesIcon, HelpCircle, List, Tag } from "lucide-react";
 import logoImage from "@assets/Findermeister logo_1755186313310.jpg";
 import { useTranslation } from "react-i18next";
 
@@ -56,6 +59,7 @@ export default function AdminHeader({ currentPage }: AdminHeaderProps) {
       hasDropdown: true,
       subItems: [
         { name: "FAQ Management", path: "/admin/faq-management", current: currentPage === "faq-management", icon: HelpCircle, id: "faq-management" },
+        { name: "FAQ Categories", path: "/admin/faq-categories", current: currentPage === "faq-categories", icon: Tag, id: "faq-categories" },
         { name: "Contact Settings", path: "/admin/contact-settings", current: currentPage === "contact-settings", icon: MessageSquare, id: "contact-settings" }
       ]
     },

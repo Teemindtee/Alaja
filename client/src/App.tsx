@@ -68,6 +68,8 @@ import PrivacyPolicy from "@/pages/privacy-policy";
 
 // Dynamically import ResetPassword component
 const ResetPassword = lazy(() => import("@/pages/auth/reset-password"));
+// Dynamically import AdminFAQCategories component
+const AdminFAQCategories = lazy(() => import("./pages/admin/faq-categories"));
 // Dynamically import AdminContactSettings component
 const AdminContactSettings = lazy(() => import("./pages/admin/contact-settings"));
 
@@ -133,6 +135,7 @@ function Router() {
       <Route path="/admin/restricted-words" component={AdminRestrictedWords} />
       <Route path="/admin/support-agents" component={AdminSupportAgents} />
       <Route path="/admin/faq-management" component={AdminFAQManagement} />
+      <Route path="/admin/faq-categories" component={AdminFAQCategories} />
       <Route path="/admin/contact-settings" component={AdminContactSettings} />
       <Route path="/admin/token-packages" component={AdminTokenPackages} />
 

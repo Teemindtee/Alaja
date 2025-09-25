@@ -910,6 +910,18 @@ export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
 export type InsertSupportDepartment = z.infer<typeof insertSupportDepartmentSchema>;
 export type SupportDepartment = InferSelectModel<typeof supportDepartments>;
 
+export const faqCategories = pgTable("faq_categories", {
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  icon: text("icon").default("HelpCircle"),
+  color: text("color").default("bg-blue-100 text-blue-800"),
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`)
+});
+
 export const faqs = pgTable("faqs", {
   id: text("id").primaryKey().default(sql`gen_random_uuid()`),
   question: text("question").notNull(),
@@ -943,10 +955,18 @@ export const contactSettings = pgTable("contact_settings", {
 
 export type FAQ = typeof faqs.$inferSelect;
 export type InsertFAQ = typeof faqs.$inferInsert;
+export type FAQCategory = typeof faqCategories.$inferSelect;
+export type InsertFAQCategory = typeof faqCategories.$inferInsert;
 export type ContactSettings = typeof contactSettings.$inferSelect;
 export type InsertContactSettings = typeof contactSettings.$inferInsert;
 
 export const insertFAQSchema = createInsertSchema(faqs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFAQCategorySchema = createInsertSchema(faqCategories).omit({
   id: true,
   createdAt: true,
   updatedAt: true,

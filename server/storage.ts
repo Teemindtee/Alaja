@@ -84,6 +84,7 @@ import {
   supportTicketMessages,
   supportDepartments,
   contactSettings,
+  faqCategories,
   type SupportAgent,
   type SupportTicket,
   type SupportTicketMessage,
@@ -323,6 +324,12 @@ export interface IStorage {
   // Contact Settings operations
   getContactSettings(): Promise<any>;
   updateContactSettings(settings: any): Promise<any>;
+
+  // FAQ Categories operations
+  getFAQCategories(): Promise<any[]>;
+  createFAQCategory(category: any): Promise<any>;
+  updateFAQCategory(id: string, updates: any): Promise<any>;
+  deleteFAQCategory(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2802,6 +2809,63 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error updating contact settings:', error);
       throw error;
+    }
+  }
+
+  // FAQ Categories operations
+  async getFAQCategories(): Promise<any[]> {
+    try {
+      return await db
+        .select()
+        .from(faqCategories)
+        .where(eq(faqCategories.isActive, true))
+        .orderBy(faqCategories.sortOrder, faqCategories.name);
+    } catch (error) {
+      console.error('Error getting FAQ categories:', error);
+      return [];
+    }
+  }
+
+  async createFAQCategory(categoryData: any): Promise<any> {
+    try {
+      const [category] = await db
+        .insert(faqCategories)
+        .values({
+          ...categoryData,
+          updatedAt: new Date()
+        })
+        .returning();
+      return category;
+    } catch (error) {
+      console.error('Error creating FAQ category:', error);
+      throw error;
+    }
+  }
+
+  async updateFAQCategory(id: string, updates: any): Promise<any> {
+    try {
+      const [category] = await db
+        .update(faqCategories)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(faqCategories.id, id))
+        .returning();
+      return category;
+    } catch (error) {
+      console.error('Error updating FAQ category:', error);
+      throw error;
+    }
+  }
+
+  async deleteFAQCategory(id: string): Promise<boolean> {
+    try {
+      const result = await db
+        .update(faqCategories)
+        .set({ isActive: false })
+        .where(eq(faqCategories.id, id));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting FAQ category:', error);
+      return false;
     }
   }
 

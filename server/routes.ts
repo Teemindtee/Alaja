@@ -3331,6 +3331,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
+  // --- FAQ Categories Management Routes ---
+  app.get("/api/admin/faq-categories", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const categories = await storage.getFAQCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error('Failed to fetch FAQ categories:', error);
+      res.status(500).json({ message: "Failed to fetch FAQ categories" });
+    }
+  });
+
+  app.post("/api/admin/faq-categories", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { name, description, icon, color, sortOrder } = req.body;
+
+      if (!name) {
+        return res.status(400).json({ message: "Category name is required" });
+      }
+
+      const category = await storage.createFAQCategory({
+        name,
+        description,
+        icon: icon || "HelpCircle",
+        color: color || "bg-blue-100 text-blue-800",
+        sortOrder: sortOrder || 0,
+        isActive: true
+      });
+
+      res.status(201).json(category);
+    } catch (error: any) {
+      console.error('Failed to create FAQ category:', error);
+      res.status(400).json({ message: "Failed to create FAQ category", error: error.message });
+    }
+  });
+
+  app.put("/api/admin/faq-categories/:id", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const category = await storage.updateFAQCategory(id, req.body);
+
+      if (!category) {
+        return res.status(404).json({ message: "FAQ category not found" });
+      }
+
+      res.json(category);
+    } catch (error: any) {
+      console.error('Failed to update FAQ category:', error);
+      res.status(400).json({ message: "Failed to update FAQ category", error: error.message });
+    }
+  });
+
+  app.delete("/api/admin/faq-categories/:id", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const success = await storage.deleteFAQCategory(id);
+
+      if (!success) {
+        return res.status(404).json({ message: "FAQ category not found" });
+      }
+
+      res.json({ message: "FAQ category deleted successfully" });
+    } catch (error: any) {
+      console.error('Failed to delete FAQ category:', error);
+      res.status(400).json({ message: "Failed to delete FAQ category", error: error.message });
+    }
+  });
+
+  // Public FAQ categories endpoint
+  app.get("/api/public/faq-categories", async (req: Request, res: Response) => {
+    try {
+      const categories = await storage.getFAQCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error('Failed to fetch public FAQ categories:', error);
+      res.status(500).json({ message: "Failed to fetch FAQ categories" });
+    }
+  });
+
   // --- Email system monitoring (Admin only) ---
   app.get("/api/admin/email-status", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
