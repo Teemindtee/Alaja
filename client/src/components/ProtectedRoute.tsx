@@ -1,84 +1,61 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: string | string[];
-  requireAuth?: boolean;
+  requiredRole?: 'client' | 'finder' | 'admin';
 }
 
-export function ProtectedRoute({ 
-  children, 
-  requiredRole, 
-  requireAuth = true 
-}: ProtectedRouteProps) {
-  const { user, isLoading, isAuthenticated } = useAuth();
-  const [, setLocation] = useLocation();
+export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const [, navigate] = useLocation();
+  const [hasRedirected, setHasRedirected] = useState(false);
 
   useEffect(() => {
-    // Don't redirect while still loading
-    if (isLoading) return;
+    if (!isLoading && !hasRedirected) {
+      if (!isAuthenticated || !user) {
+        setHasRedirected(true);
+        navigate('/login');
+        return;
+      }
 
-    // If authentication is required but user is not authenticated
-    if (requireAuth && !isAuthenticated) {
-      setLocation("/login");
-      return;
-    }
-
-    // If user is authenticated but doesn't have required role
-    if (isAuthenticated && user && requiredRole) {
-      const userRole = user.role;
-      const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
-      
-      if (!allowedRoles.includes(userRole)) {
-        // Redirect based on user's actual role
-        switch (userRole) {
-          case 'admin':
-            setLocation("/admin/dashboard");
-            break;
-          case 'finder':
-            setLocation("/finder/dashboard");
-            break;
-          case 'client':
-            setLocation("/client/dashboard");
-            break;
-          default:
-            setLocation("/");
+      if (requiredRole && user.role !== requiredRole) {
+        setHasRedirected(true);
+        // Redirect to appropriate dashboard based on user role
+        if (user.role === 'admin') {
+          navigate('/admin/dashboard');
+        } else if (user.role === 'finder') {
+          navigate('/finder/dashboard');
+        } else if (user.role === 'client') {
+          navigate('/client/dashboard');
+        } else {
+          navigate('/');
         }
         return;
       }
     }
-  }, [isLoading, isAuthenticated, user, requiredRole, requireAuth, setLocation]);
+  }, [isAuthenticated, user, isLoading, navigate, requiredRole, hasRedirected]);
 
-  // Show loading state while checking authentication
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-finder-red mx-auto mb-4"></div>
+          <p>Loading...</p>
         </div>
       </div>
     );
   }
 
-  // If authentication is required but user is not authenticated, don't render
-  if (requireAuth && !isAuthenticated) {
+  if (!isAuthenticated || !user) {
     return null;
   }
 
-  // If user is authenticated but doesn't have required role, don't render
-  if (isAuthenticated && user && requiredRole) {
-    const userRole = user.role;
-    const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
-    
-    if (!allowedRoles.includes(userRole)) {
-      return null;
-    }
+  if (requiredRole && user.role !== requiredRole) {
+    return null;
   }
 
-  // Render the protected component
   return <>{children}</>;
 }
 
@@ -121,7 +98,7 @@ export function AgentRoute({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isLoading) return;
-    
+
     if (!isAuthenticated) {
       setLocation("/login");
       return;

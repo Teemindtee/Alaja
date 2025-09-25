@@ -50,12 +50,12 @@ const AuthService = {
       },
       body: JSON.stringify(data),
     });
-    
+
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || 'Registration failed');
     }
-    
+
     const result = await response.json();
     this.setToken(result.token);
     return result;
@@ -69,12 +69,12 @@ const AuthService = {
       },
       body: JSON.stringify(data),
     });
-    
+
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || 'Login failed');
     }
-    
+
     const result = await response.json();
     this.setToken(result.token);
     return result;
@@ -85,11 +85,11 @@ const AuthService = {
       headers: this.getAuthHeaders(),
       credentials: 'include',
     });
-    
+
     if (!response.ok) {
       throw new Error('Failed to get current user');
     }
-    
+
     return response.json();
   },
 
@@ -107,6 +107,7 @@ const AuthService = {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false); // Added state for isAuthenticated
   const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
@@ -122,23 +123,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('Setting user from auth data:', data.user);
       setUser(data.user);
       setProfile(data.profile);
+      setIsAuthenticated(true); // Set isAuthenticated to true when user data is available
     } else if (error) {
       console.error('Auth error, clearing token:', error);
       AuthService.clearToken();
       setUser(null);
       setProfile(null);
+      setIsAuthenticated(false); // Set isAuthenticated to false on error
     }
   }, [data, error]);
 
   const login = async (email: string, password: string) => {
-    const response = await AuthService.login({ email, password });
-    setUser(response.user);
-    queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Login failed');
+      }
+
+      const data = await response.json();
+
+      // Store token in localStorage
+      localStorage.setItem('token', data.token);
+
+      // Set user state
+      setUser(data.user);
+      setIsAuthenticated(true);
+
+      // Invalidate and refetch user data
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+
+      // Return the login data so components can access user info
+      return data;
+
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
   };
 
   const register = async (data: any) => {
     const response = await AuthService.register(data);
     setUser(response.user);
+    setIsAuthenticated(true); // Set isAuthenticated to true after registration
     queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
   };
 
@@ -146,6 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Clear state immediately
     setUser(null);
     setProfile(null);
+    setIsAuthenticated(false); // Set isAuthenticated to false on logout
     queryClient.clear();
     // Clear token and redirect
     AuthService.logout();

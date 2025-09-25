@@ -8,6 +8,8 @@ import Landing from "@/pages/landing";
 import Login from "@/pages/auth/login";
 import Register from "@/pages/auth/register";
 import RegisterFinder from "@/pages/auth/register-finder";
+import { useAuth } from "@/hooks/use-auth";
+import { useLocation } from "wouter";
 import ClientDashboard from "@/pages/client/dashboard";
 import CreateRequest from "@/pages/client/create-request";
 import RequestDetails from "@/pages/client/request-details";
@@ -85,6 +87,37 @@ const AdminFAQCategories = lazy(() => import("./pages/admin/faq-categories"));
 // Dynamically import AdminContactSettings component
 const AdminContactSettings = lazy(() => import("./pages/admin/contact-settings"));
 
+// Component to guard auth pages from logged in users
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, user, isLoading } = useAuth();
+  const [, navigate] = useLocation();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-finder-red mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated && user) {
+    // Redirect authenticated users to their dashboard
+    if (user.role === 'admin') {
+      navigate('/admin/dashboard');
+    } else if (user.role === 'finder') {
+      navigate('/finder/dashboard');
+    } else if (user.role === 'client') {
+      navigate('/client/dashboard');
+    }
+    return null;
+  }
+
+  return <>{children}</>;
+}
+
 function Router() {
   return (
     <Switch>
@@ -92,9 +125,9 @@ function Router() {
       <Route path="/mobile" component={MobileLanding} />
       <Route path="/browse-requests" component={BrowseRequests} />
       <Route path="/client/mobile-dashboard" component={ClientMobileDashboard} />
-      <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />
-      <Route path="/register/finder" component={RegisterFinder} />
+      <Route path="/login" component={() => <AuthGuard><Login /></AuthGuard>} />
+      <Route path="/register" component={() => <AuthGuard><Register /></AuthGuard>} />
+      <Route path="/register/finder" component={() => <AuthGuard><RegisterFinder /></AuthGuard>} />
       {/* Add reset password route */}
       <Route path="/reset-password" component={ResetPassword} />
       <Route path="/client/dashboard" component={() => <ClientRoute><ClientDashboard /></ClientRoute>} />

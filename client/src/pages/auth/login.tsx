@@ -28,12 +28,23 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      await login(formData.email, formData.password);
+      const result = await login(formData.email, formData.password);
       toast({
         title: "Success",
         description: "Logged in successfully!",
       });
-      navigate("/");
+      
+      // Redirect based on user role
+      const userRole = result.user.role;
+      if (userRole === 'admin') {
+        navigate("/admin/dashboard");
+      } else if (userRole === 'finder') {
+        navigate("/finder/dashboard");
+      } else if (userRole === 'client') {
+        navigate("/client/dashboard");
+      } else {
+        navigate("/");
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",
