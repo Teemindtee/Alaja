@@ -72,10 +72,15 @@ export default function AdminUsers() {
 
   const banUserMutation = useMutation({
     mutationFn: async ({ userId, action, reason }: { userId: string; action: 'ban' | 'unban'; reason?: string }) => {
-      return await apiRequest(`/api/admin/users/${userId}/${action}`, { 
-        method: "POST", 
-        body: action === 'ban' ? JSON.stringify({ reason }) : undefined 
-      });
+      const url = `/api/admin/users/${userId}/${action}`;
+      const options: any = { method: "POST" };
+      
+      if (action === 'ban' && reason) {
+        options.headers = { 'Content-Type': 'application/json' };
+        options.body = JSON.stringify({ reason });
+      }
+      
+      return await apiRequest(url, options);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
@@ -103,8 +108,15 @@ export default function AdminUsers() {
   };
 
   const confirmBanUser = () => {
-    if (!selectedUser || !banReason.trim()) return;
-    banUserMutation.mutate({ userId: selectedUser.id, action: 'ban', reason: banReason });
+    if (!selectedUser || !banReason.trim()) {
+      toast({ 
+        title: "Error", 
+        description: "Please provide a reason for banning this user", 
+        variant: "destructive" 
+      });
+      return;
+    }
+    banUserMutation.mutate({ userId: selectedUser.id, action: 'ban', reason: banReason.trim() });
   };
 
   // Filter users based on search term and exclude admins

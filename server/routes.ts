@@ -1866,15 +1866,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { id } = req.params;
+      const { reason } = req.body;
+
+      if (!reason || typeof reason !== 'string' || !reason.trim()) {
+        return res.status(400).json({ message: "Ban reason is required" });
+      }
+
       const user = await storage.updateUser(id, { isBanned: true });
 
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      res.json({ message: "User banned successfully" });
+      res.json({ message: "User banned successfully", user: { ...user, password: undefined } });
     } catch (error) {
+      console.error('Ban user error:', error);
       res.status(500).json({ message: "Failed to ban user" });
+    }
+  });
+
+  app.post("/api/admin/users/:id/unban", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const user = await storage.updateUser(id, { isBanned: false });
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({ message: "User unbanned successfully", user: { ...user, password: undefined } });
+    } catch (error) {
+      console.error('Unban user error:', error);
+      res.status(500).json({ message: "Failed to unban user" });
     }
   });
 
