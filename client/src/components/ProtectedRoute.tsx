@@ -95,6 +95,7 @@ export function AuthenticatedRoute({ children }: { children: React.ReactNode }) 
 export function AgentRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
+  const [agentVerified, setAgentVerified] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (isLoading) return;
@@ -104,34 +105,61 @@ export function AgentRoute({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // For agent routes, we need to check if the user has support agent permissions
-    // This will be validated at the API level, but we redirect non-admins away
-    if (user && user.role !== 'admin') {
-      switch (user.role) {
-        case 'finder':
-          setLocation("/finder/dashboard");
-          break;
-        case 'client':
-          setLocation("/client/dashboard");
-          break;
-        default:
-          setLocation("/");
+    // Check if user has support agent access via API
+    const checkAgentAccess = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/agent/dashboard', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          setAgentVerified(true);
+        } else {
+          setAgentVerified(false);
+          // Redirect based on user role
+          if (user) {
+            switch (user.role) {
+              case 'admin':
+                setLocation("/admin/dashboard");
+                break;
+              case 'finder':
+                setLocation("/finder/dashboard");
+                break;
+              case 'client':
+                setLocation("/client/dashboard");
+                break;
+              default:
+                setLocation("/");
+            }
+          } else {
+            setLocation("/");
+          }
+        }
+      } catch (error) {
+        console.error('Agent access check failed:', error);
+        setAgentVerified(false);
+        setLocation("/");
       }
-    }
+    };
+
+    checkAgentAccess();
   }, [isLoading, isAuthenticated, user, setLocation]);
 
-  if (isLoading) {
+  if (isLoading || agentVerified === null) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">Verifying agent access...</p>
         </div>
       </div>
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !agentVerified) {
     return null;
   }
 

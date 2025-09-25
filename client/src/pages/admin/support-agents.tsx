@@ -276,6 +276,12 @@ export default function SupportAgentsManagement() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Support Agents</h1>
             <p className="text-gray-600 mt-2">Manage customer support team members and their permissions</p>
+            <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <strong>Note:</strong> Support agents have limited privileges for handling customer tickets only. 
+                They do not have access to admin functions like user management, system settings, or financial data.
+              </p>
+            </div>
           </div>
           <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
             <DialogTrigger asChild>
@@ -317,7 +323,7 @@ export default function SupportAgentsManagement() {
                       type="text"
                       value={newAgent.lastName}
                       onChange={(e) => setNewAgent({...newAgent, lastName: e.target.value})}
-                      placeholder="Last name"
+                      placeholder="last name"
                       className="h-8"
                     />
                   </div>

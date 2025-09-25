@@ -1165,32 +1165,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Checking support agent for user:', req.user.userId, 'role:', req.user.role);
 
-      // Allow admins to access agent dashboard
-      if (req.user.role === 'admin') {
-        console.log('Admin user accessing agent dashboard');
-        // Create a mock agent object for admin
-        (req as any).agent = {
-          id: 'admin',
-          agentId: 'ADMIN',
-          department: 'all',
-          permissions: ['view_all_tickets', 'respond_all_tickets', 'assign_tickets', 'close_tickets', 'modify_priority', 'internal_notes'],
-          isActive: true,
-          maxTicketsPerDay: 999,
-          responseTimeTarget: 1,
-          user: {
-            firstName: 'Admin',
-            lastName: 'User'
-          }
-        };
-        return next();
-      }
-
+      // Only allow actual support agents, not admins
       const supportAgent = await storage.getUserSupportAgent(req.user.userId);
       console.log('Found support agent:', supportAgent ? supportAgent.id : 'none');
       
       if (!supportAgent) {
         console.log('No support agent record found for user:', req.user.userId);
-        return res.status(403).json({ message: 'Support agent access required' });
+        return res.status(403).json({ message: 'Support agent access required. Please contact an administrator to be assigned as a support agent.' });
       }
       
       if (!supportAgent.isActive) {
@@ -1242,6 +1223,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Debug agent auth error:', error);
       res.status(500).json({ message: 'Debug error', error: error.message });
+    }
+  });
+
+  // --- Admin Support Management ---
+  // Admin endpoint to view all support tickets
+  app.get("/api/admin/support/tickets", authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { status, priority, department, page = 1, limit = 20 } = req.query;
+
+      let filters: any = {};
+      
+      if (status && typeof status === 'string') {
+        filters.status = status;
+      }
+      if (priority && typeof priority === 'string') {
+        filters.priority = priority;
+      }
+      if (department && typeof department === 'string') {
+        filters.department = department;
+      }
+
+      const tickets = await storage.getSupportTickets(filters);
+
+      res.json({
+        tickets,
+        pagination: {
+          page: parseInt(page as string),
+          limit: parseInt(limit as string),
+          total: tickets.length
+        }
+      });
+    } catch (error) {
+      console.error('Failed to fetch admin support tickets:', error);
+      res.status(500).json({ message: "Failed to fetch support tickets" });
+    }
+  });
+
+  // Admin endpoint to view specific ticket
+  app.get("/api/admin/support/tickets/:id", authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const ticket = await storage.getSupportTicket(id);
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+
+      // Get ticket messages
+      const messages = await storage.getSupportTicketMessages(id);
+
+      res.json({
+        ticket,
+        messages
+      });
+    } catch (error) {
+      console.error('Failed to fetch admin ticket details:', error);
+      res.status(500).json({ message: "Failed to fetch ticket details" });
+    }
+  });
+
+  // Admin endpoint to update ticket assignment and status
+  app.put("/api/admin/support/tickets/:id", authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { status, assignedTo, priority, resolution } = req.body;
+
+      const ticket = await storage.getSupportTicket(id);
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+
+      const updates: any = {};
+
+      if (status !== undefined) {
+        updates.status = status;
+        
+        if (status === 'resolved' || status === 'closed') {
+          updates.resolvedAt = new Date();
+          if (resolution) {
+            updates.resolution = resolution;
+          }
+        }
+      }
+
+      if (assignedTo !== undefined) {
+        updates.assignedTo = assignedTo;
+      }
+
+      if (priority !== undefined) {
+        updates.priority = priority;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ message: "No valid updates provided" });
+      }
+
+      const updatedTicket = await storage.updateSupportTicket(id, updates);
+
+      res.json({
+        ticket: updatedTicket,
+        message: "Ticket updated successfully"
+      });
+    } catch (error) {
+      console.error('Failed to update admin ticket:', error);
+      res.status(500).json({ message: "Failed to update ticket" });
     }
   });
 
