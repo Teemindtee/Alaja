@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useTransition } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import {
 export default function AdminContactSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isPending, startTransition] = useTransition();
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ['/api/admin/contact-settings'],
@@ -51,21 +52,23 @@ export default function AdminContactSettings() {
   // Update form data when settings are loaded
   React.useEffect(() => {
     if (settings) {
-      setFormData({
-        supportEmail: settings.supportEmail || "",
-        supportPhone: settings.supportPhone || "",
-        officeAddress: settings.officeAddress || "",
-        businessHours: settings.businessHours || "",
-        facebookUrl: settings.facebookUrl || "",
-        twitterUrl: settings.twitterUrl || "",
-        instagramUrl: settings.instagramUrl || "",
-        tiktokUrl: settings.tiktokUrl || "",
-        linkedinUrl: settings.linkedinUrl || "",
-        whatsappNumber: settings.whatsappNumber || "",
-        responseTimeLow: settings.responseTimeLow || "",
-        responseTimeMedium: settings.responseTimeMedium || "",
-        responseTimeHigh: settings.responseTimeHigh || "",
-        responseTimeUrgent: settings.responseTimeUrgent || ""
+      startTransition(() => {
+        setFormData({
+          supportEmail: settings.supportEmail || "",
+          supportPhone: settings.supportPhone || "",
+          officeAddress: settings.officeAddress || "",
+          businessHours: settings.businessHours || "",
+          facebookUrl: settings.facebookUrl || "",
+          twitterUrl: settings.twitterUrl || "",
+          instagramUrl: settings.instagramUrl || "",
+          tiktokUrl: settings.tiktokUrl || "",
+          linkedinUrl: settings.linkedinUrl || "",
+          whatsappNumber: settings.whatsappNumber || "",
+          responseTimeLow: settings.responseTimeLow || "",
+          responseTimeMedium: settings.responseTimeMedium || "",
+          responseTimeHigh: settings.responseTimeHigh || "",
+          responseTimeUrgent: settings.responseTimeUrgent || ""
+        });
       });
     }
   }, [settings]);
@@ -92,7 +95,9 @@ export default function AdminContactSettings() {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    startTransition(() => {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    });
   };
 
   if (isLoading) {
@@ -318,7 +323,7 @@ export default function AdminContactSettings() {
             <Button 
               type="submit" 
               className="bg-blue-600 hover:bg-blue-700 px-8"
-              disabled={updateMutation.isPending}
+              disabled={updateMutation.isPending || isPending}
             >
               {updateMutation.isPending ? (
                 <>
