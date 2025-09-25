@@ -349,7 +349,7 @@ export interface IStorage {
   updateSupportTicket(id: string, updates: Partial<SupportTicket>): Promise<SupportTicket | undefined>;
   deleteSupportTicket(id: string): Promise<boolean>;
   generateTicketNumber(): Promise<string>;
-  
+
   // Support Ticket Message operations
   createSupportTicketMessage(message: { ticketId: string; senderId?: string; senderType: string; senderName: string; senderEmail?: string; content: string; attachments?: string[]; isInternal?: boolean; }): Promise<SupportTicketMessage>;
   getSupportTicketMessages(ticketId: string): Promise<Array<SupportTicketMessage & { sender?: { firstName: string; lastName: string; } }>>;
@@ -2640,54 +2640,85 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getSupportAgent(id: string) {
-    const [agent] = await db
-      .select({
-        id: supportAgents.id,
-        userId: supportAgents.userId,
-        agentId: supportAgents.agentId,
-        department: supportAgents.department,
-        permissions: supportAgents.permissions,
-        isActive: supportAgents.isActive,
-        maxTicketsPerDay: supportAgents.maxTicketsPerDay,
-        responseTimeTarget: supportAgents.responseTimeTarget,
-        specializations: supportAgents.specializations,
-        languages: supportAgents.languages,
-        suspendedAt: supportAgents.suspendedAt,
-        suspensionReason: supportAgents.suspensionReason,
-        createdAt: supportAgents.createdAt,
-        updatedAt: supportAgents.updatedAt,
-        user: {
-          id: users.id,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          email: users.email,
-        },
-      })
-      .from(supportAgents)
-      .leftJoin(users, eq(supportAgents.userId, users.id))
-      .where(eq(supportAgents.id, id));
+  async getSupportAgent(agentId: string) {
+    try {
+      const agent = await db
+        .select({
+          id: supportAgents.id,
+          userId: supportAgents.userId,
+          agentId: supportAgents.agentId,
+          department: supportAgents.department,
+          permissions: supportAgents.permissions,
+          isActive: supportAgents.isActive,
+          maxTicketsPerDay: supportAgents.maxTicketsPerDay,
+          responseTimeTarget: supportAgents.responseTimeTarget,
+          specializations: supportAgents.specializations,
+          languages: supportAgents.languages,
+          assignedBy: supportAgents.assignedBy,
+          suspendedAt: supportAgents.suspendedAt,
+          suspensionReason: supportAgents.suspensionReason,
+          createdAt: supportAgents.createdAt,
+          updatedAt: supportAgents.updatedAt,
+          user: {
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            email: users.email,
+            role: users.role
+          }
+        })
+        .from(supportAgents)
+        .leftJoin(users, eq(supportAgents.userId, users.id))
+        .where(eq(supportAgents.id, agentId))
+        .limit(1);
 
-    if (!agent) return null;
+      return agent[0] || null;
+    } catch (error) {
+      console.error('Error fetching support agent:', error);
+      throw error;
+    }
+  }
 
-    // Map snake_case to camelCase for frontend
-    return {
-      id: agent.id,
-      userId: agent.userId,
-      agentId: agent.agentId,
-      department: agent.department,
-      permissions: agent.permissions,
-      isActive: agent.isActive,
-      maxTicketsPerDay: agent.maxTicketsPerDay,
-      responseTimeTarget: agent.responseTimeTarget,
-      specializations: agent.specializations,
-      languages: agent.languages,
-      suspendedAt: agent.suspendedAt,
-      suspensionReason: agent.suspensionReason,
-      createdAt: agent.createdAt,
-      updatedAt: agent.updatedAt,
-      user: agent.user,
-    };
+  // Get support agent by user ID
+  async getUserSupportAgent(userId: string) {
+    try {
+      console.log('Looking for support agent with userId:', userId);
+      const agent = await db
+        .select({
+          id: supportAgents.id,
+          userId: supportAgents.userId,
+          agentId: supportAgents.agentId,
+          department: supportAgents.department,
+          permissions: supportAgents.permissions,
+          isActive: supportAgents.isActive,
+          maxTicketsPerDay: supportAgents.maxTicketsPerDay,
+          responseTimeTarget: supportAgents.responseTimeTarget,
+          specializations: supportAgents.specializations,
+          languages: supportAgents.languages,
+          assignedBy: supportAgents.assignedBy,
+          suspendedAt: supportAgents.suspendedAt,
+          suspensionReason: supportAgents.suspensionReason,
+          createdAt: supportAgents.createdAt,
+          updatedAt: supportAgents.updatedAt,
+          user: {
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            email: users.email,
+            role: users.role
+          }
+        })
+        .from(supportAgents)
+        .leftJoin(users, eq(supportAgents.userId, users.id))
+        .where(eq(supportAgents.userId, userId))
+        .limit(1);
+
+      console.log('Found support agent:', agent[0] ? agent[0].agentId : 'none');
+      return agent[0] || null;
+    } catch (error) {
+      console.error('Error fetching user support agent:', error);
+      throw error;
+    }
   }
 
   async updateSupportAgent(id: string, data: Partial<InsertSupportAgent>) {
@@ -2762,15 +2793,6 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount > 0;
   }
 
-  // Support Agent Check
-  async getUserSupportAgent(userId: string) {
-    const [agent] = await db
-      .select()
-      .from(supportAgents)
-      .where(eq(supportAgents.userId, userId));
-    return agent;
-  }
-
   async generateWithdrawalRequestId(): Promise<string> {
     const year = new Date().getFullYear();
 
@@ -2791,7 +2813,7 @@ export class DatabaseStorage implements IStorage {
   async getContactSettings(): Promise<any> {
     try {
       const [settings] = await db.select().from(contactSettings).limit(1);
-      
+
       if (!settings) {
         // Create default settings if none exist
         const [defaultSettings] = await db
@@ -2800,7 +2822,7 @@ export class DatabaseStorage implements IStorage {
           .returning();
         return defaultSettings;
       }
-      
+
       return settings;
     } catch (error) {
       console.error('Error getting contact settings:', error);
@@ -2828,7 +2850,7 @@ export class DatabaseStorage implements IStorage {
     try {
       // Check if settings exist
       const [existing] = await db.select().from(contactSettings).limit(1);
-      
+
       if (existing) {
         // Update existing settings
         const [updated] = await db

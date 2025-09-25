@@ -1127,16 +1127,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
   async function requireSupportAgent(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       if (!req.user) {
+        console.log('No user in request for support agent auth');
         return res.status(401).json({ message: 'Authentication required' });
       }
 
+      console.log('Checking support agent for user:', req.user.userId, 'role:', req.user.role);
+
+      // Allow admins to access agent dashboard
+      if (req.user.role === 'admin') {
+        console.log('Admin user accessing agent dashboard');
+        // Create a mock agent object for admin
+        (req as any).agent = {
+          id: 'admin',
+          agentId: 'ADMIN',
+          department: 'all',
+          permissions: ['view_all_tickets', 'respond_all_tickets', 'assign_tickets', 'close_tickets', 'modify_priority', 'internal_notes'],
+          isActive: true,
+          maxTicketsPerDay: 999,
+          responseTimeTarget: 1,
+          user: {
+            firstName: 'Admin',
+            lastName: 'User'
+          }
+        };
+        return next();
+      }
+
       const supportAgent = await storage.getUserSupportAgent(req.user.userId);
-      if (!supportAgent || !supportAgent.isActive) {
+      console.log('Found support agent:', supportAgent ? supportAgent.id : 'none');
+      
+      if (!supportAgent) {
+        console.log('No support agent record found for user:', req.user.userId);
         return res.status(403).json({ message: 'Support agent access required' });
+      }
+      
+      if (!supportAgent.isActive) {
+        console.log('Support agent is not active:', supportAgent.id);
+        return res.status(403).json({ message: 'Support agent account is suspended' });
       }
 
       // Attach agent info to request
       (req as any).agent = supportAgent;
+      console.log('Support agent authenticated successfully:', supportAgent.agentId);
       next();
     } catch (error) {
       console.error('Support agent authentication error:', error);
@@ -1154,6 +1186,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next();
     };
   }
+
+  // Debug endpoint for support agent authentication
+  app.get("/api/debug/agent-auth", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      console.log('Debug: User info:', {
+        userId: req.user.userId,
+        email: req.user.email,
+        role: req.user.role
+      });
+
+      const supportAgent = await storage.getUserSupportAgent(req.user.userId);
+      console.log('Debug: Support agent:', supportAgent);
+
+      res.json({
+        user: {
+          userId: req.user.userId,
+          email: req.user.email,
+          role: req.user.role
+        },
+        supportAgent: supportAgent
+      });
+    } catch (error) {
+      console.error('Debug agent auth error:', error);
+      res.status(500).json({ message: 'Debug error', error: error.message });
+    }
+  });
 
   // --- Support Agent Ticket Management ---
   
