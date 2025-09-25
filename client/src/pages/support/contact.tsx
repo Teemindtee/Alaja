@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
+import { Link } from "wouter";
 import { 
   Mail, 
   Phone, 
@@ -16,7 +17,9 @@ import {
   Clock, 
   CheckCircle,
   AlertCircle,
-  HelpCircle
+  HelpCircle,
+  ArrowLeft,
+  Home
 } from "lucide-react";
 
 const supportCategories = [
@@ -100,12 +103,49 @@ export default function ContactSupport() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-4">
+              <Link href="/support">
+                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Support
+                </Button>
+              </Link>
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-finder-red rounded-lg flex items-center justify-center">
+                  <MessageSquare className="w-5 h-5 text-white" />
+                </div>
+                <h1 className="text-xl font-semibold text-gray-900">Contact Support</h1>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Link href="/">
+                <Button variant="outline" size="sm" className="border-gray-300">
+                  <Home className="w-4 h-4 mr-2" />
+                  Home
+                </Button>
+              </Link>
+              {user && (
+                <Link href={user.role === 'admin' ? '/admin/dashboard' : user.role === 'finder' ? '/finder/dashboard' : '/client/dashboard'}>
+                  <Button size="sm" className="bg-finder-red hover:bg-finder-red/90">
+                    Dashboard
+                  </Button>
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Page Title Section */}
       <div className="bg-white border-b">
         <div className="max-w-4xl mx-auto px-6 py-8">
           <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">Contact Support</h1>
-            <p className="text-xl text-gray-600">
-              Get help with your FinderMeister account and services
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Get Help & Support</h2>
+            <p className="text-lg text-gray-600">
+              Submit a support ticket and we'll get back to you as soon as possible
             </p>
           </div>
         </div>
