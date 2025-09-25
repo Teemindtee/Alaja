@@ -4221,20 +4221,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // --- Support Agent Management Routes ---
   app.get('/api/admin/support-agents', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
+      console.log('GET support agents request received');
+      console.log('User role:', req.user.role);
+
       if (req.user.role !== 'admin') {
         return res.status(403).json({ message: 'Admin access required' });
       }
 
+      console.log('Fetching support agents from storage');
       const agents = await storage.getSupportAgents();
+      console.log(`Returning ${agents.length} support agents`);
       res.json(agents);
     } catch (error: any) {
       console.error('Error fetching support agents:', error);
-      res.status(500).json({ message: 'Internal server error' });
+      res.status(500).json({ message: 'Internal server error', error: error.message });
     }
   });
 
   app.post('/api/admin/support-agents', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
+      console.log('Support agent creation request received');
+      console.log('Request body:', req.body);
+      console.log('User role:', req.user.role);
+
       if (req.user.role !== 'admin') {
         return res.status(403).json({ message: 'Admin access required' });
       }
@@ -4255,16 +4264,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Email, first name, last name, department, and permissions are required' });
       }
 
+      console.log('Checking if user exists with email:', email);
       // Check if user already exists
       let user = await storage.getUserByEmail(email);
 
       if (user) {
+        console.log('User found:', user.id);
         // Check if user is already a support agent
         const existingAgent = await storage.getUserSupportAgent(user.id);
         if (existingAgent) {
           return res.status(400).json({ message: "User is already a support agent" });
         }
       } else {
+        console.log('Creating new user for support agent');
         // Create new user account for the support agent
         const hashedPassword = await bcrypt.hash('ChangeMe123!', 10);
 
@@ -4275,12 +4287,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lastName,
           role: 'admin' // Support agents get admin role for system access
         });
+        console.log('New user created:', user.id);
       }
 
       // Generate unique agent ID
+      console.log('Generating agent ID');
       const agentId = await storage.generateAgentId();
+      console.log('Generated agent ID:', agentId);
 
       // Create support agent record
+      console.log('Creating support agent record');
       const agent = await storage.createSupportAgent({
         userId: user.id,
         agentId,
@@ -4294,9 +4310,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         assignedBy: req.user.userId
       });
 
+      console.log('Support agent created:', agent.id);
+
       // Get the created agent with user details
       const agentWithUser = await storage.getSupportAgent(agent.id);
 
+      console.log('Returning agent with user details:', agentWithUser?.id);
       res.status(201).json(agentWithUser);
     } catch (error: any) {
       console.error('Create support agent error:', error);

@@ -754,6 +754,58 @@ export const supportAgents = pgTable("support_agents", {
 
 export type SelectSupportAgent = InferSelectModel<typeof supportAgents>;
 
+// Contact Settings Table
+export const contactSettings = pgTable("contact_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  supportEmail: text("support_email").default("findermeisterinnovations@gmail.com"),
+  supportPhone: text("support_phone").default("+234-7039391065"),
+  officeAddress: text("office_address").default("18 Back of Road safety office, Moniya, Ibadan"),
+  businessHours: text("business_hours").default("Mon-Fri, 9 AM - 6 PM WAT"),
+  facebookUrl: text("facebook_url").default("https://facebook.com/findermeister"),
+  twitterUrl: text("twitter_url").default("https://twitter.com/findermeister"),
+  instagramUrl: text("instagram_url").default("https://instagram.com/findermeister"),
+  tiktokUrl: text("tiktok_url").default("https://tiktok.com/@findermeisterinnovations"),
+  linkedinUrl: text("linkedin_url").default("https://linkedin.com/company/findermeister"),
+  whatsappNumber: text("whatsapp_number").default("+234-7039391065"),
+  responseTimeLow: text("response_time_low").default("2-3 business days"),
+  responseTimeMedium: text("response_time_medium").default("1-2 business days"),
+  responseTimeHigh: text("response_time_high").default("4-8 hours"),
+  responseTimeUrgent: text("response_time_urgent").default("1-2 hours"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// FAQ Categories Table
+export const faqCategories = pgTable("faq_categories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  icon: text("icon").default("HelpCircle"),
+  color: text("color").default("bg-blue-100 text-blue-800"),
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// User Verification Table
+export const userVerifications = pgTable("user_verifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  documentType: text("document_type").notNull(), // 'national_id', 'passport', 'drivers_license'
+  documentFrontImage: text("document_front_image").notNull(),
+  documentBackImage: text("document_back_image"),
+  selfieImage: text("selfie_image").notNull(),
+  status: text("status").default("pending"), // 'pending', 'verified', 'rejected'
+  rejectionReason: text("rejection_reason"),
+  reviewedBy: varchar("reviewed_by").references(() => users.id),
+  submittedAt: timestamp("submitted_at").defaultNow(),
+  reviewedAt: timestamp("reviewed_at"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type UserVerification = InferSelectModel<typeof userVerifications>;
+export type InsertUserVerification = InferInsertModel<typeof userVerifications>;
+
 export const supportTickets = pgTable("support_tickets", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   ticketNumber: varchar("ticket_number").notNull().unique(), // Human-readable ticket number
@@ -885,10 +937,57 @@ export const supportTicketMessagesRelations = relations(supportTicketMessages, (
   }),
 }));
 
+// Support Agent System Tables
+export const supportDepartments = pgTable("support_departments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const supportTickets = pgTable("support_tickets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ticketNumber: varchar("ticket_number").notNull().unique(),
+  submitterId: varchar("submitter_id").references(() => users.id).notNull(),
+  assignedTo: varchar("assigned_to").references(() => supportAgents.id),
+  category: text("category").notNull(),
+  priority: text("priority").notNull(), // 'low', 'medium', 'high', 'urgent'
+  status: text("status").default("open"), // 'open', 'in_progress', 'resolved', 'closed'
+  subject: text("subject").notNull(),
+  description: text("description").notNull(),
+  tags: text("tags").array(),
+  attachments: text("attachments").array(),
+  internalNotes: text("internal_notes"),
+  resolution: text("resolution"),
+  satisfactionRating: integer("satisfaction_rating"), // 1-5 stars
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+  closedAt: timestamp("closed_at"),
+});
+
+export const supportTicketMessages = pgTable("support_ticket_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ticketId: varchar("ticket_id").references(() => supportTickets.id).notNull(),
+  senderId: varchar("sender_id").references(() => users.id).notNull(),
+  message: text("message").notNull(),
+  isInternal: boolean("is_internal").default(false), // Internal notes vs customer-facing
+  attachments: text("attachments").array(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Support Agent Types
 export type SupportAgent = InferSelectModel<typeof supportAgents>;
 export type SupportTicket = InferSelectModel<typeof supportTickets>;
 export type SupportTicketMessage = InferSelectModel<typeof supportTicketMessages>;
+export type SupportDepartment = InferSelectModel<typeof supportDepartments>;
+
+export type InsertSupportAgent = InferInsertModel<typeof supportAgents>;
+export type InsertSupportTicket = InferInsertModel<typeof supportTickets>;
+export type InsertSupportDepartment = InferInsertModel<typeof supportDepartments>;
+
 export const insertSupportAgentSchema = createInsertSchema(supportAgents).omit({
   id: true,
   createdAt: true,

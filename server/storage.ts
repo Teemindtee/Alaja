@@ -2559,57 +2559,72 @@ export class DatabaseStorage implements IStorage {
 
   // Support Agent Management
   async createSupportAgent(data: InsertSupportAgent & { agentId: string }) {
-    const [agent] = await db.insert(supportAgents).values({
-      ...data,
-      updatedAt: new Date()
-    }).returning();
-    return agent;
+    try {
+      console.log('Creating support agent with data:', data);
+      const [agent] = await db.insert(supportAgents).values({
+        ...data,
+        updatedAt: new Date()
+      }).returning();
+      console.log('Support agent created successfully:', agent);
+      return agent;
+    } catch (error) {
+      console.error('Error creating support agent:', error);
+      throw error;
+    }
   }
 
   async getSupportAgents() {
-    const results = await db
-      .select({
-        id: supportAgents.id,
-        userId: supportAgents.userId,
-        agentId: supportAgents.agentId,
-        department: supportAgents.department,
-        permissions: supportAgents.permissions,
-        isActive: supportAgents.isActive,
-        maxTicketsPerDay: supportAgents.maxTicketsPerDay,
-        responseTimeTarget: supportAgents.responseTimeTarget,
-        specializations: supportAgents.specializations,
-        languages: supportAgents.languages,
-        suspendedAt: supportAgents.suspendedAt,
-        suspensionReason: supportAgents.suspensionReason,
-        createdAt: supportAgents.createdAt,
-        user: {
-          id: users.id,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          email: users.email,
-        },
-      })
-      .from(supportAgents)
-      .leftJoin(users, eq(supportAgents.userId, users.id))
-      .orderBy(supportAgents.createdAt);
+    try {
+      console.log('Fetching support agents...');
+      const results = await db
+        .select({
+          id: supportAgents.id,
+          userId: supportAgents.userId,
+          agentId: supportAgents.agentId,
+          department: supportAgents.department,
+          permissions: supportAgents.permissions,
+          isActive: supportAgents.isActive,
+          maxTicketsPerDay: supportAgents.maxTicketsPerDay,
+          responseTimeTarget: supportAgents.responseTimeTarget,
+          specializations: supportAgents.specializations,
+          languages: supportAgents.languages,
+          suspendedAt: supportAgents.suspendedAt,
+          suspensionReason: supportAgents.suspensionReason,
+          createdAt: supportAgents.createdAt,
+          user: {
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            email: users.email,
+          },
+        })
+        .from(supportAgents)
+        .leftJoin(users, eq(supportAgents.userId, users.id))
+        .orderBy(supportAgents.createdAt);
 
-    // Map snake_case to camelCase for frontend
-    return results.map(agent => ({
-      id: agent.id,
-      userId: agent.userId,
-      agentId: agent.agentId,
-      department: agent.department,
-      permissions: agent.permissions,
-      isActive: agent.isActive,
-      maxTicketsPerDay: agent.maxTicketsPerDay,
-      responseTimeTarget: agent.responseTimeTarget,
-      specializations: agent.specializations,
-      languages: agent.languages,
-      suspendedAt: agent.suspendedAt,
-      suspensionReason: agent.suspensionReason,
-      createdAt: agent.createdAt,
-      user: agent.user,
-    }));
+      console.log(`Found ${results.length} support agents`);
+
+      // Map snake_case to camelCase for frontend
+      return results.map(agent => ({
+        id: agent.id,
+        userId: agent.userId,
+        agentId: agent.agentId,
+        department: agent.department,
+        permissions: agent.permissions || [],
+        isActive: agent.isActive,
+        maxTicketsPerDay: agent.maxTicketsPerDay,
+        responseTimeTarget: agent.responseTimeTarget,
+        specializations: agent.specializations || [],
+        languages: agent.languages || ['en'],
+        suspendedAt: agent.suspendedAt,
+        suspensionReason: agent.suspensionReason,
+        createdAt: agent.createdAt,
+        user: agent.user,
+      }));
+    } catch (error) {
+      console.error('Error fetching support agents:', error);
+      throw error;
+    }
   }
 
   async getSupportAgent(id: string) {
