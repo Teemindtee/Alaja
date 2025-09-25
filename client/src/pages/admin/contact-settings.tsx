@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import AdminHeader from "@/components/admin-header";
+import type { ContactSettings } from "@shared/schema";
 import { 
   Save,
   Mail,
@@ -28,7 +29,7 @@ export default function AdminContactSettings() {
   const queryClient = useQueryClient();
   const [isPending, startTransition] = useTransition();
 
-  const { data: settings, isLoading } = useQuery({
+  const { data: settings, isLoading } = useQuery<ContactSettings>({
     queryKey: ['/api/admin/contact-settings'],
   });
 
@@ -52,23 +53,21 @@ export default function AdminContactSettings() {
   // Update form data when settings are loaded
   React.useEffect(() => {
     if (settings) {
-      startTransition(() => {
-        setFormData({
-          supportEmail: settings.supportEmail || "",
-          supportPhone: settings.supportPhone || "",
-          officeAddress: settings.officeAddress || "",
-          businessHours: settings.businessHours || "",
-          facebookUrl: settings.facebookUrl || "",
-          twitterUrl: settings.twitterUrl || "",
-          instagramUrl: settings.instagramUrl || "",
-          tiktokUrl: settings.tiktokUrl || "",
-          linkedinUrl: settings.linkedinUrl || "",
-          whatsappNumber: settings.whatsappNumber || "",
-          responseTimeLow: settings.responseTimeLow || "",
-          responseTimeMedium: settings.responseTimeMedium || "",
-          responseTimeHigh: settings.responseTimeHigh || "",
-          responseTimeUrgent: settings.responseTimeUrgent || ""
-        });
+      setFormData({
+        supportEmail: settings.supportEmail || "",
+        supportPhone: settings.supportPhone || "",
+        officeAddress: settings.officeAddress || "",
+        businessHours: settings.businessHours || "",
+        facebookUrl: settings.facebookUrl || "",
+        twitterUrl: settings.twitterUrl || "",
+        instagramUrl: settings.instagramUrl || "",
+        tiktokUrl: settings.tiktokUrl || "",
+        linkedinUrl: settings.linkedinUrl || "",
+        whatsappNumber: settings.whatsappNumber || "",
+        responseTimeLow: settings.responseTimeLow || "",
+        responseTimeMedium: settings.responseTimeMedium || "",
+        responseTimeHigh: settings.responseTimeHigh || "",
+        responseTimeUrgent: settings.responseTimeUrgent || ""
       });
     }
   }, [settings]);
@@ -91,7 +90,9 @@ export default function AdminContactSettings() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    updateMutation.mutate(formData);
+    startTransition(() => {
+      updateMutation.mutate(formData);
+    });
   };
 
   const handleInputChange = (field: string, value: string) => {
