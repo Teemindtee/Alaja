@@ -59,9 +59,9 @@ export default function AdminHeader({ currentPage }: AdminHeaderProps) {
       id: "faq-management",
       hasDropdown: true,
       subItems: [
-        { name: "FAQ Management", path: "/admin/faq-management", current: currentPage === "faq-management", icon: HelpCircle, id: "faq-management" },
-        { name: "FAQ Categories", path: "/admin/faq-categories", current: currentPage === "faq-categories", icon: Tag, id: "faq-categories" },
-        { name: "Contact Settings", path: "/admin/contact-settings", current: currentPage === "contact-settings", icon: MessageSquare, id: "contact-settings" }
+        { path: "/admin/faq-management", label: "FAQ Management", icon: HelpCircle, id: "faq-management" },
+        { path: "/admin/faq-categories", label: "FAQ Categories", icon: Tag, id: "faq-categories" },
+        { path: "/admin/contact-settings", label: "Contact Settings", icon: MessageSquare, id: "contact-settings" }
       ]
     },
     { path: "/admin/settings", label: "Settings", icon: Settings, id: "settings" },
