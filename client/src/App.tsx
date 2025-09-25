@@ -67,6 +67,9 @@ import TermsAndConditions from "@/pages/terms-and-conditions";
 import PrivacyPolicy from "@/pages/privacy-policy";
 import AdminVerificationManagement from "./pages/admin/verification-management";
 import Verification from "./pages/verification";
+import AgentDashboard from "@/pages/agent/dashboard";
+import AgentTickets from "@/pages/agent/tickets";
+import AgentTicketDetails from "@/pages/agent/ticket-details";
 
 // Dynamically import ResetPassword component
 const ResetPassword = lazy(() => import("@/pages/auth/reset-password"));
@@ -142,6 +145,11 @@ function Router() {
       <Route path="/admin/token-packages" component={AdminTokenPackages} />
       <Route path="/admin/verification-management" component={AdminVerificationManagement} />
       <Route path="/verification" component={Verification} />
+
+      {/* Agent Routes */}
+      <Route path="/agent/dashboard" component={AgentDashboard} />
+      <Route path="/agent/tickets" component={AgentTickets} />
+      <Route path="/agent/tickets/:id" component={AgentTicketDetails} />
 
       {/* Blog Routes */}
       <Route path="/admin/blog-posts" component={AdminBlogPosts} />
