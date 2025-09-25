@@ -937,46 +937,6 @@ export const supportTicketMessagesRelations = relations(supportTicketMessages, (
   }),
 }));
 
-// Support Agent System Tables
-export const supportDepartments = pgTable("support_departments", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull().unique(),
-  description: text("description"),
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-export const supportTickets = pgTable("support_tickets", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  ticketNumber: varchar("ticket_number").notNull().unique(),
-  submitterId: varchar("submitter_id").references(() => users.id).notNull(),
-  assignedTo: varchar("assigned_to").references(() => supportAgents.id),
-  category: text("category").notNull(),
-  priority: text("priority").notNull(), // 'low', 'medium', 'high', 'urgent'
-  status: text("status").default("open"), // 'open', 'in_progress', 'resolved', 'closed'
-  subject: text("subject").notNull(),
-  description: text("description").notNull(),
-  tags: text("tags").array(),
-  attachments: text("attachments").array(),
-  internalNotes: text("internal_notes"),
-  resolution: text("resolution"),
-  satisfactionRating: integer("satisfaction_rating"), // 1-5 stars
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-  resolvedAt: timestamp("resolved_at"),
-  closedAt: timestamp("closed_at"),
-});
-
-export const supportTicketMessages = pgTable("support_ticket_messages", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  ticketId: varchar("ticket_id").references(() => supportTickets.id).notNull(),
-  senderId: varchar("sender_id").references(() => users.id).notNull(),
-  message: text("message").notNull(),
-  isInternal: boolean("is_internal").default(false), // Internal notes vs customer-facing
-  attachments: text("attachments").array(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
 
 // Support Agent Types
 export type SupportAgent = InferSelectModel<typeof supportAgents>;
@@ -1005,23 +965,6 @@ export const insertSupportDepartmentSchema = createInsertSchema(supportDepartmen
   createdAt: true,
 });
 
-export type InsertSupportAgent = z.infer<typeof insertSupportAgentSchema>;
-export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
-export type InsertSupportDepartment = z.infer<typeof insertSupportDepartmentSchema>;
-export type SupportDepartment = InferSelectModel<typeof supportDepartments>;
-
-export const faqCategories = pgTable("faq_categories", {
-  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull().unique(),
-  description: text("description"),
-  icon: text("icon").default("HelpCircle"),
-  color: text("color").default("bg-blue-100 text-blue-800"),
-  sortOrder: integer("sort_order").default(0),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").default(sql`now()`),
-  updatedAt: timestamp("updated_at").default(sql`now()`)
-});
-
 export const faqs = pgTable("faqs", {
   id: text("id").primaryKey().default(sql`gen_random_uuid()`),
   question: text("question").notNull(),
@@ -1034,48 +977,12 @@ export const faqs = pgTable("faqs", {
   updatedAt: timestamp("updated_at").default(sql`now()`)
 });
 
-export const contactSettings = pgTable("contact_settings", {
-  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
-  supportEmail: text("support_email").notNull().default("findermeisterinnovations@gmail.com"),
-  supportPhone: text("support_phone").notNull().default("+234-7039391065"),
-  officeAddress: text("office_address").notNull().default("18 Back of Road safety office, Moniya, Ibadan"),
-  businessHours: text("business_hours").notNull().default("Mon-Fri, 9 AM - 6 PM WAT"),
-  facebookUrl: text("facebook_url").default("https://facebook.com/findermeister"),
-  twitterUrl: text("twitter_url").default("https://twitter.com/findermeister"),
-  instagramUrl: text("instagram_url").default("https://instagram.com/findermeister"),
-  tiktokUrl: text("tiktok_url").default("https://tiktok.com/@findermeisterinnovations"),
-  linkedinUrl: text("linkedin_url").default("https://linkedin.com/company/findermeister"),
-  whatsappNumber: text("whatsapp_number").default("+234-7039391065"),
-  responseTimeLow: text("response_time_low").default("2-3 business days"),
-  responseTimeMedium: text("response_time_medium").default("1-2 business days"),
-  responseTimeHigh: text("response_time_high").default("4-8 hours"),
-  responseTimeUrgent: text("response_time_urgent").default("1-2 hours"),
-  updatedAt: timestamp("updated_at").default(sql`now()`)
-});
-
-export const userVerifications = pgTable("user_verifications", {
-  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: text("user_id").references(() => users.id).notNull().unique(),
-  documentType: text("document_type").notNull(), // 'national_id', 'passport', 'voters_card'
-  documentFrontImage: text("document_front_image").notNull(),
-  documentBackImage: text("document_back_image"),
-  selfieImage: text("selfie_image").notNull(),
-  status: text("status").default("pending"), // 'pending', 'verified', 'rejected'
-  rejectionReason: text("rejection_reason"),
-  reviewedBy: text("reviewed_by").references(() => users.id),
-  submittedAt: timestamp("submitted_at").default(sql`now()`),
-  reviewedAt: timestamp("reviewed_at"),
-  updatedAt: timestamp("updated_at").default(sql`now()`)
-});
-
 export type FAQ = typeof faqs.$inferSelect;
 export type InsertFAQ = typeof faqs.$inferInsert;
 export type FAQCategory = typeof faqCategories.$inferSelect;
 export type InsertFAQCategory = typeof faqCategories.$inferInsert;
 export type ContactSettings = typeof contactSettings.$inferSelect;
 export type InsertContactSettings = typeof contactSettings.$inferInsert;
-export type UserVerification = typeof userVerifications.$inferSelect;
-export type InsertUserVerification = typeof userVerifications.$inferInsert;
 
 export const insertFAQSchema = createInsertSchema(faqs).omit({
   id: true,

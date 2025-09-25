@@ -112,7 +112,7 @@ export default function SupportAgentsManagement() {
   });
 
   const createAgentMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("/api/admin/support-agents", "POST", data),
+    mutationFn: (data: any) => apiRequest("/api/admin/support-agents", { method: "POST", body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["support-agents"] });
       setShowCreateDialog(false);
@@ -143,7 +143,7 @@ export default function SupportAgentsManagement() {
 
   const updateAgentMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => 
-      apiRequest(`/api/admin/support-agents/${id}`, "PUT", data),
+      apiRequest(`/api/admin/support-agents/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["support-agents"] });
       setShowEditDialog(false);
@@ -164,7 +164,7 @@ export default function SupportAgentsManagement() {
 
   const suspendAgentMutation = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
-      apiRequest(`/api/admin/support-agents/${id}/suspend`, "POST", { reason }),
+      apiRequest(`/api/admin/support-agents/${id}/suspend`, { method: "POST", body: JSON.stringify({ reason }) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["support-agents"] });
       toast({
@@ -183,7 +183,7 @@ export default function SupportAgentsManagement() {
 
   const reactivateAgentMutation = useMutation({
     mutationFn: (id: string) =>
-      apiRequest(`/api/admin/support-agents/${id}/reactivate`, "POST"),
+      apiRequest(`/api/admin/support-agents/${id}/reactivate`, { method: "POST" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["support-agents"] });
       toast({
@@ -202,7 +202,7 @@ export default function SupportAgentsManagement() {
 
   const deleteAgentMutation = useMutation({
     mutationFn: (id: string) =>
-      apiRequest(`/api/admin/support-agents/${id}`, "DELETE"),
+      apiRequest(`/api/admin/support-agents/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["support-agents"] });
       toast({
