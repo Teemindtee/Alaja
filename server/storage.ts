@@ -114,6 +114,7 @@ export interface IStorage {
   createFinder(finder: InsertFinder): Promise<Finder>;
   updateFinder(id: string, updates: Partial<Finder>): Promise<Finder | undefined>;
   getFinderPendingEarnings(finderId: string): Promise<{ pendingAmount: number; contractCount: number; }>;
+  calculateFinderProfileCompletion(finderId: string): Promise<{ completionPercentage: number; missingFields: string[]; }>;
 
   // Find operations
   getFind(id: string): Promise<Find | undefined>;
@@ -447,6 +448,40 @@ export class DatabaseStorage implements IStorage {
     return {
       pendingAmount: totalAmount,
       contractCount
+    };
+  }
+
+  async calculateFinderProfileCompletion(finderId: string): Promise<{ completionPercentage: number; missingFields: string[]; }> {
+    const finder = await this.getFinder(finderId);
+    if (!finder) {
+      return { completionPercentage: 0, missingFields: ['Profile not found'] };
+    }
+
+    const requiredFields = [
+      { field: 'bio', value: finder.bio, label: 'Bio/Description' },
+      { field: 'categories', value: finder.categories?.length > 0 ? finder.categories : finder.category, label: 'Specialization Categories' },
+      { field: 'skills', value: finder.skills?.length > 0 ? finder.skills : null, label: 'Skills' },
+      { field: 'hourlyRate', value: finder.hourlyRate, label: 'Hourly Rate' },
+      { field: 'phone', value: finder.phone, label: 'Phone Number' }
+    ];
+
+    const completedFields = requiredFields.filter(({ value }) => {
+      if (Array.isArray(value)) return value.length > 0;
+      return value !== null && value !== undefined && value !== '';
+    });
+
+    const missingFields = requiredFields
+      .filter(({ value }) => {
+        if (Array.isArray(value)) return value.length === 0;
+        return value === null || value === undefined || value === '';
+      })
+      .map(({ label }) => label);
+
+    const completionPercentage = Math.round((completedFields.length / requiredFields.length) * 100);
+
+    return {
+      completionPercentage,
+      missingFields
     };
   }
 
