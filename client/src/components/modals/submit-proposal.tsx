@@ -57,12 +57,39 @@ export default function SubmitProposalModal({ isOpen, onClose, request }: Submit
       setFormData({ approach: "", price: "", timeline: "", notes: "" });
       onClose();
     },
-    onError: (error) => {
-      toast({
-        title: "Failed to submit proposal",
-        description: error instanceof Error ? error.message : "Please try again.",
-        variant: "destructive",
-      });
+    onError: (error: any) => {
+      // Check if this is a verification error
+      if (error.verificationRequired || error.message?.includes("verification required")) {
+        toast({
+          title: "Account Verification Required",
+          description: error.message || "You must verify your account before submitting proposals.",
+          variant: "destructive",
+        });
+      } 
+      // Check if this is a profile completion error
+      else if (error.profileCompletionRequired || error.message?.includes("Profile completion required")) {
+        toast({
+          title: "Profile Completion Required",
+          description: error.message || `Complete your profile (${error.completionPercentage || 0}% done) before submitting proposals.`,
+          variant: "destructive",
+        });
+      } 
+      // Check if this is a token error
+      else if (error.message?.includes("findertokens") || error.message?.includes("Insufficient")) {
+        toast({
+          title: "Insufficient Tokens",
+          description: error.message || "You need tokens to submit proposals.",
+          variant: "destructive",
+        });
+      } 
+      // Generic error
+      else {
+        toast({
+          title: "Failed to submit proposal",
+          description: error instanceof Error ? error.message : "Please try again.",
+          variant: "destructive",
+        });
+      }
     },
   });
 

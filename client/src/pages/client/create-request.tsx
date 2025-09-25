@@ -142,8 +142,29 @@ export default function CreateRequest() {
       }, 1500);
     },
     onError: (error: any) => {
+      // Check if this is a verification error
+      if (error.verificationRequired || error.message?.includes("verification required")) {
+        toast({
+          variant: "destructive",
+          title: "Account Verification Required",
+          description: error.message || "You must verify your account before posting finds.",
+          action: (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                navigate("/verification");
+              }}
+              className="bg-white hover:bg-gray-50 text-gray-900 border-gray-300"
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Verify Account
+            </Button>
+          ),
+        });
+      } 
       // Check if this is a findertokens error with purchase info
-      if (error.needsToPurchaseTokens && error.purchaseUrl) {
+      else if (error.needsToPurchaseTokens && error.purchaseUrl) {
         toast({
           variant: "destructive",
           title: "Insufficient Findertokens",
