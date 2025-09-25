@@ -1025,15 +1025,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Support ticket submission endpoint
   app.post("/api/support/tickets", async (req: Request, res: Response) => {
     try {
-      const { name, email, category, priority, subject, message } = req.body;
+      const { name, email, category, priority = 'medium', subject, message } = req.body;
 
-      // In a real application, you would save this to a database or send to a support system
-      console.log('Support ticket submitted:', { name, email, category, priority, subject, message });
+      // Validate required fields
+      if (!name || !email || !category || !subject || !message) {
+        return res.status(400).json({ 
+          message: "Missing required fields: name, email, category, subject, and message are required" 
+        });
+      }
 
-      // For now, just return success
-      res.json({
+      // Generate unique ticket number
+      const ticketNumber = await storage.generateTicketNumber();
+      
+      // Map category to department (can be enhanced with a lookup table later)
+      const departmentMap: { [key: string]: string } = {
+        'account': 'general',
+        'billing': 'billing',
+        'payment': 'billing',
+        'technical': 'technical',
+        'bug': 'technical',
+        'feature': 'general',
+        'general': 'general',
+        'dispute': 'disputes',
+        'verification': 'verification'
+      };
+      
+      const department = departmentMap[category.toLowerCase()] || 'general';
+
+      // Check if user is authenticated (optional - tickets can be anonymous)
+      let submitterId = null;
+      const authHeader = req.headers['authorization'];
+      if (authHeader) {
+        try {
+          const token = authHeader.split(' ')[1];
+          const decoded = jwt.verify(token, JWT_SECRET) as any;
+          submitterId = decoded.userId;
+        } catch (error) {
+          // If token is invalid, treat as anonymous submission
+          console.log('Anonymous ticket submission - invalid/missing token');
+        }
+      }
+
+      // Create support ticket
+      const ticketData = {
+        ticketNumber,
+        submitterName: name,
+        submitterEmail: email,
+        submitterId,
+        category: category.toLowerCase(),
+        priority: priority.toLowerCase(),
+        department,
+        subject,
+        description: message,
+        status: 'open'
+      };
+
+      const ticket = await storage.createSupportTicket(ticketData);
+
+      // Create initial message from user
+      await storage.createSupportTicketMessage({
+        ticketId: ticket.id,
+        senderId: submitterId,
+        senderType: 'user',
+        senderName: name,
+        senderEmail: email,
+        content: message,
+        isInternal: false
+      });
+
+      console.log(`Support ticket created: ${ticketNumber}`, { 
+        id: ticket.id,
+        submitter: name,
+        email,
+        category,
+        priority,
+        department,
+        subject
+      });
+
+      res.status(201).json({
         success: true,
-        ticketId: `TICKET-${Date.now()}`,
+        ticket: {
+          id: ticket.id,
+          ticketNumber: ticket.ticketNumber,
+          status: ticket.status,
+          category: ticket.category,
+          priority: ticket.priority,
+          department: ticket.department,
+          subject: ticket.subject,
+          createdAt: ticket.createdAt
+        },
         message: "Support ticket submitted successfully"
       });
     } catch (error) {
