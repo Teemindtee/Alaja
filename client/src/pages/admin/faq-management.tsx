@@ -50,7 +50,7 @@ export default function AdminFAQManagement() {
   });
 
   const { data: categories = [], isLoading: isLoadingCategories } = useQuery<Category[]>({
-    queryKey: ['/api/admin/categories'],
+    queryKey: ['/api/admin/faq-categories'],
     enabled: !!user && user.role === 'admin'
   });
 
