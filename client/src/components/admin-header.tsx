@@ -12,7 +12,7 @@ import {
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
-import { User, Users, Settings, FileText, LogOut, BarChart3, MessageSquare, DollarSign, Tags, Edit, Menu, ChevronDown, TrendingUp, Coins, Shield, Package, HeadphonesIcon, HelpCircle, List, Tag } from "lucide-react";
+import { User, Users, Settings, FileText, LogOut, BarChart3, MessageSquare, Banknote, Tags, Edit, Menu, ChevronDown, TrendingUp, Coins, Shield, Package, HeadphonesIcon, HelpCircle, List, Tag } from "lucide-react";
 import logoImage from "@assets/Findermeister logo_1755186313310.jpg";
 import { useTranslation } from "react-i18next";
 
@@ -39,7 +39,7 @@ export default function AdminHeader({ currentPage }: AdminHeaderProps) {
       hasDropdown: true,
       subItems: [
         { path: "/admin/users", label: "Manage Users", icon: Users, id: "users" },
-        { path: "/admin/withdrawals", label: "Withdrawals", icon: DollarSign, id: "withdrawals" },
+        { path: "/admin/withdrawals", label: "Withdrawals", icon: Banknote, id: "withdrawals" },
         { path: "/admin/strike-system", label: "Strike System", icon: Shield, id: "strike-system" },
         { path: "/admin/finder-levels", label: "Finder Levels", icon: TrendingUp, id: "finder-levels" },
         { path: "/admin/categories", label: "Categories", icon: Tags, id: "categories" },
