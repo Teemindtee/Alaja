@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,15 @@ export default function ClientProfile() {
   const viewUserId = queryUserId || params.userId;
   const isAdminViewing = user?.role === 'admin' && !!viewUserId;
   
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+  });
+
   // Fetch user's requests for statistics
   const { data: requests = [] } = useQuery({
     queryKey: ['/api/client/finds'],
@@ -71,61 +81,6 @@ export default function ClientProfile() {
     },
     enabled: Boolean(isAdminViewing && viewUserId),
   });
-
-  // Use either the profile user (for admin viewing) or the logged-in user (for self-viewing)
-  const displayUser = isAdminViewing ? profileUser : user;
-
-  // Debug logging
-  console.log('Profile page state:', {
-    user,
-    authLoading,
-    isAdminViewing,
-    viewUserId,
-    displayUser,
-    profileLoading,
-    profileError,
-    userRole: user?.role,
-    displayUserExists: !!displayUser
-  });
-
-  // Additional check: if we have a user but no displayUser, something is wrong
-  if (user && !authLoading && !displayUser) {
-    console.error('User exists but displayUser is null:', { user, isAdminViewing, profileUser });
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl p-8">
-          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-10 h-10 text-red-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">Profile Loading Error</h1>
-          <p className="text-slate-600 mb-6">There was an issue loading your profile. Please try refreshing the page.</p>
-          <Button onClick={() => window.location.reload()} className="bg-blue-600 hover:bg-blue-700">
-            Refresh Page
-          </Button>
-        </div>
-      </div>
-    );
-  }
-  
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
-    firstName: displayUser?.firstName || '',
-    lastName: displayUser?.lastName || '',
-    email: displayUser?.email || '',
-    phone: displayUser?.phone || '',
-  });
-
-  // Update form data when user data loads/changes
-  useEffect(() => {
-    if (displayUser) {
-      setFormData({
-        firstName: displayUser.firstName || '',
-        lastName: displayUser.lastName || '',
-        email: displayUser.email || '',
-        phone: displayUser.phone || '',
-      });
-    }
-  }, [displayUser]);
 
   const updateProfile = useMutation({
     mutationFn: async (data: typeof formData) => {
@@ -162,19 +117,11 @@ export default function ClientProfile() {
     }
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    updateProfile.mutate(formData);
-  };
+  // Use either the profile user (for admin viewing) or the logged-in user (for self-viewing)
+  const displayUser = isAdminViewing ? profileUser : user;
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
-  };
-
-  const handleCancel = () => {
+  // Update form data when user data loads/changes
+  useEffect(() => {
     if (displayUser) {
       setFormData({
         firstName: displayUser.firstName || '',
@@ -183,9 +130,22 @@ export default function ClientProfile() {
         phone: displayUser.phone || '',
       });
     }
-    setIsEditing(false);
-  };
+  }, [displayUser]);
 
+  // Debug logging
+  console.log('Profile page state:', {
+    user,
+    authLoading,
+    isAdminViewing,
+    viewUserId,
+    displayUser,
+    profileLoading,
+    profileError,
+    userRole: user?.role,
+    displayUserExists: !!displayUser
+  });
+
+  // NOW ALL CONDITIONAL LOGIC AND EARLY RETURNS
   // Show loading state while auth is loading
   if (authLoading) {
     return (
@@ -288,6 +248,31 @@ export default function ClientProfile() {
       </div>
     );
   }
+
+  // EVENT HANDLERS
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    updateProfile.mutate(formData);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
+  };
+
+  const handleCancel = () => {
+    if (displayUser) {
+      setFormData({
+        firstName: displayUser.firstName || '',
+        lastName: displayUser.lastName || '',
+        email: displayUser.email || '',
+        phone: displayUser.phone || '',
+      });
+    }
+    setIsEditing(false);
+  };
 
   // Get real client statistics from the requests data
   const clientStats = {
@@ -666,13 +651,9 @@ export default function ClientProfile() {
                       Change Password
                     </Button>
                   </div>
-
-                  
                 </div>
               </CardContent>
             </Card>
-
-            
           </div>
         </div>
       </main>
