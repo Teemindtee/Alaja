@@ -264,7 +264,7 @@ export class FlutterwaveService {
     }
 
     try {
-      const payload = {
+      const payload: any = {
         account_number: accountNumber,
         account_bank: accountBank,
         amount: amount,

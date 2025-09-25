@@ -1,6 +1,7 @@
 
 import { FlutterwaveService } from './flutterwaveService';
 import { storage } from './storage';
+import type { WithdrawalRequest } from '@shared/schema';
 
 export interface WithdrawalProcessResult {
   success: boolean;
@@ -21,7 +22,7 @@ export class WithdrawalService {
   async processWithdrawal(withdrawalId: string): Promise<WithdrawalProcessResult> {
     try {
       // Get withdrawal request
-      const withdrawal = await storage.getWithdrawalRequest(withdrawalId);
+      const withdrawal = await this.getWithdrawalById(withdrawalId);
       if (!withdrawal) {
         return {
           success: false,
@@ -85,7 +86,7 @@ export class WithdrawalService {
       // Update withdrawal status to processing
       await storage.updateWithdrawalRequest(withdrawalId, {
         status: 'processing',
-        processedAt: new Date().toISOString(),
+        processedAt: new Date(),
         adminNotes: `Transfer initiated via Flutterwave. Transfer ID: ${transferResult.id}, Reference: ${transferReference}`
       });
 
@@ -106,7 +107,7 @@ export class WithdrawalService {
       try {
         await storage.updateWithdrawalRequest(withdrawalId, {
           status: 'rejected',
-          processedAt: new Date().toISOString(),
+          processedAt: new Date(),
           adminNotes: `Failed to process withdrawal: ${error.message}`
         });
       } catch (updateError) {
@@ -132,7 +133,7 @@ export class WithdrawalService {
       }
 
       // Find withdrawal by reference in admin notes
-      const withdrawals = await storage.getAllWithdrawalRequests();
+      const withdrawals = await storage.getWithdrawalRequests();
       const withdrawal = withdrawals.find(w => 
         w.adminNotes && w.adminNotes.includes(reference)
       );
@@ -185,5 +186,10 @@ export class WithdrawalService {
         error: error.message
       };
     }
+  }
+
+  private async getWithdrawalById(withdrawalId: string): Promise<WithdrawalRequest | undefined> {
+    const withdrawals = await storage.getWithdrawalRequests();
+    return withdrawals.find(w => w.id === withdrawalId);
   }
 }

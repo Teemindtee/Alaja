@@ -1114,7 +1114,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create callback URL for after payment
       const callbackUrl = `${req.protocol}://${req.get('host')}/finder/payment-success?payment=success&reference=${reference}`;
 
-      const transaction = await paystackService.initializeTransaction(
+      const transaction = await paymentService.initializeTransaction(
         user.email,
         amount, // Amount in naira
         reference,
@@ -1150,9 +1150,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
-      const reference = paystackService.generateTransactionReference(req.user.userId);
+      const reference = paymentService.generateTransactionReference(req.user.userId);
 
-      const transaction = await paystackService.initializeTransaction(
+      const transaction = await paymentService.initializeTransaction(
         user.email,
         selectedPackage.price,
         reference,
@@ -3033,6 +3033,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Flutterwave Transfer Webhook for withdrawal status updates
+  app.post("/api/payments/flutterwave/transfer/webhook", async (req: Request, res: Response) => {
+    try {
+      const signature = req.headers['verif-hash'] as string;
+      const payload = JSON.stringify(req.body);
+
+      // Verify webhook signature
+      const flutterwaveService = new FlutterwaveService();
+      if (!flutterwaveService.verifyWebhookSignature(payload, signature)) {
+        console.log('Invalid Flutterwave webhook signature');
+        return res.status(400).json({ error: 'Invalid signature' });
+      }
+
+      const { WithdrawalService } = await import('./withdrawalService');
+      const withdrawalService = new WithdrawalService();
+      
+      await withdrawalService.handleTransferWebhook(req.body.data);
+
+      res.json({ status: 'success' });
+    } catch (error: any) {
+      console.error('Flutterwave transfer webhook error:', error);
+      res.status(500).json({ error: 'Webhook processing failed' });
+    }
+  });
+
   // Finder withdrawal request
   app.post("/api/finder/withdraw", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
@@ -3076,7 +3101,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paymentMethod,
         paymentDetails: typeof paymentDetails === 'string' ? paymentDetails : JSON.stringify(paymentDetails),
         requestId,
-        requestedAt: new Date().toISOString()
+        requestedAt: new Date()
       });
 
       // Deduct the amount from available balance immediately
@@ -3710,10 +3735,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await autoReleaseService.manualRelease();
 
       res.json({
-        message: `Auto-release process completed: ${result.released} contracts released`,
-        released: result.released
+        message: `Auto-release process completed: ${(result as any).released || 0} contracts released`,
+        released: (result as any).released || 0
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Auto-release error:', error);
       res.status(500).json({ message: "Failed to process auto-releases" });
     }
