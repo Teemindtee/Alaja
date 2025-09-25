@@ -976,7 +976,7 @@ export type InsertFAQCategory = typeof faqCategories.$inferInsert;
 export type ContactSettings = typeof contactSettings.$inferSelect;
 export type InsertContactSettings = typeof contactSettings.$inferInsert;
 export type UserVerification = typeof userVerifications.$inferSelect;
-export type InsertUserVerification = typeof userVerifications.$inferInsert;</old_str>
+export type InsertUserVerification = typeof userVerifications.$inferInsert;
 
 export const insertFAQSchema = createInsertSchema(faqs).omit({
   id: true,
@@ -1000,7 +1000,7 @@ export const insertUserVerificationSchema = createInsertSchema(userVerifications
   submittedAt: true,
   reviewedAt: true,
   updatedAt: true,
-});</old_str>
+});
 
 // Restricted Words Types
 export type RestrictedWord = InferSelectModel<typeof restrictedWords>;

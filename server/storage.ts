@@ -94,7 +94,7 @@ import {
   type InsertSupportTicket,
   type InsertSupportDepartment,
   type UserVerification,
-  type InsertUserVerification,</old_str>
+  type InsertUserVerification,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, asc } from "drizzle-orm";
@@ -340,7 +340,7 @@ export interface IStorage {
   getPendingVerifications(): Promise<any[]>;
   updateVerificationStatus(id: string, status: string, reviewedBy: string, rejectionReason?: string): Promise<any>;
   getVerificationById(id: string): Promise<any>;
-  isVerificationRequired(): Promise<boolean>;</old_str>
+  isVerificationRequired(): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
