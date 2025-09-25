@@ -101,11 +101,25 @@ export default function AdminDashboardModern() {
     totalProposals: proposals.length,
     activeFinds: finds.filter(f => f.status === 'open' || f.status === 'in_progress').length,
     completedFinds: finds.filter(f => f.status === 'completed').length,
-    totalRevenue: "₦2,450,000", // This would come from actual revenue calculations
+    totalRevenue: formatCurrency(
+      finds
+        .filter(f => f.status === 'completed')
+        .reduce((sum, f) => sum + parseFloat(f.budgetMax || f.budgetMin || '0'), 0) +
+      proposals
+        .filter(p => p.status === 'accepted')
+        .reduce((sum, p) => sum + parseFloat(p.amount || '0'), 0)
+    ),
     userGrowth: calculateGrowth(currentMonthUsers.length, lastMonthUsers.length),
     findGrowth: calculateGrowth(currentMonthFinds.length, lastMonthFinds.length),
     proposalGrowth: calculateGrowth(currentMonthProposals.length, lastMonthProposals.length),
-    revenueGrowth: 18.9 // This would be calculated from actual revenue data
+    revenueGrowth: calculateGrowth(
+      currentMonthFinds
+        .filter(f => f.status === 'completed')
+        .reduce((sum, f) => sum + parseFloat(f.budgetMax || f.budgetMin || '0'), 0),
+      lastMonthFinds
+        .filter(f => f.status === 'completed')
+        .reduce((sum, f) => sum + parseFloat(f.budgetMax || f.budgetMin || '0'), 0)
+    )
   };
 
   // Get recent finds and users for the bottom tables
