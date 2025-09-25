@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,28 +27,30 @@ import {
 } from "lucide-react";
 import type { FAQ } from "@shared/schema";
 
-const categories = [
-  "Getting Started",
-  "Tokens & Payments", 
-  "Communication",
-  "Work Completion",
-  "Account Management",
-  "Gamification"
-];
+interface Category {
+  id: string;
+  name: string;
+  isActive: boolean;
+}
 
 export default function AdminFAQManagement() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingFAQ, setEditingFAQ] = useState<FAQ | null>(null);
 
-  const { data: faqs = [], isLoading } = useQuery<FAQ[]>({
+  const { data: faqs = [], isLoading: isLoadingFAQs } = useQuery<FAQ[]>({
     queryKey: ['/api/admin/faqs'],
+    enabled: !!user && user.role === 'admin'
+  });
+
+  const { data: categories = [], isLoading: isLoadingCategories } = useQuery<Category[]>({
+    queryKey: ['/api/admin/categories'],
     enabled: !!user && user.role === 'admin'
   });
 
@@ -163,8 +164,8 @@ export default function AdminFAQManagement() {
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
             <SelectContent>
-              {categories.map(category => (
-                <SelectItem key={category} value={category}>{category}</SelectItem>
+              {categories.filter(cat => cat.isActive).map(category => (
+                <SelectItem key={category.id} value={category.name}>{category.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -208,7 +209,7 @@ export default function AdminFAQManagement() {
     );
   };
 
-  if (isLoading) {
+  if (isLoadingFAQs || isLoadingCategories) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/20">
         <AdminHeader currentPage="faqs" />
@@ -225,7 +226,7 @@ export default function AdminFAQManagement() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/20">
       <AdminHeader currentPage="faqs" />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -281,8 +282,8 @@ export default function AdminFAQManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map(category => (
-                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                  {categories.filter(cat => cat.isActive).map(category => (
+                    <SelectItem key={category.id} value={category.name}>{category.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
