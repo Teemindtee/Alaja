@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, startTransition } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -82,9 +82,11 @@ export default function AdminFAQCategories() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/faq-categories'] });
-      toast({ title: "FAQ category created successfully" });
-      setIsCreateModalOpen(false);
+      startTransition(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/faq-categories'] });
+        toast({ title: "FAQ category created successfully" });
+        setIsCreateModalOpen(false);
+      });
     },
     onError: (error: any) => {
       toast({ title: "Error creating FAQ category", description: error.message, variant: "destructive" });
@@ -99,10 +101,12 @@ export default function AdminFAQCategories() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/faq-categories'] });
-      toast({ title: "FAQ category updated successfully" });
-      setIsEditModalOpen(false);
-      setEditingCategory(null);
+      startTransition(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/faq-categories'] });
+        toast({ title: "FAQ category updated successfully" });
+        setIsEditModalOpen(false);
+        setEditingCategory(null);
+      });
     },
     onError: (error: any) => {
       toast({ title: "Error updating FAQ category", description: error.message, variant: "destructive" });
@@ -116,8 +120,10 @@ export default function AdminFAQCategories() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/faq-categories'] });
-      toast({ title: "FAQ category deleted successfully" });
+      startTransition(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/faq-categories'] });
+        toast({ title: "FAQ category deleted successfully" });
+      });
     },
     onError: (error: any) => {
       toast({ title: "Error deleting FAQ category", description: error.message, variant: "destructive" });
@@ -136,9 +142,11 @@ export default function AdminFAQCategories() {
 
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
-      onSubmit({
-        ...formData,
-        ...(isEditing && { id: category?.id })
+      startTransition(() => {
+        onSubmit({
+          ...formData,
+          ...(isEditing && { id: category?.id })
+        });
       });
     };
 
