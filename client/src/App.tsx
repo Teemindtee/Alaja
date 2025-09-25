@@ -70,6 +70,13 @@ import Verification from "./pages/verification";
 import AgentDashboard from "@/pages/agent/dashboard";
 import AgentTickets from "@/pages/agent/tickets";
 import AgentTicketDetails from "@/pages/agent/ticket-details";
+import { 
+  AdminRoute, 
+  FinderRoute, 
+  ClientRoute, 
+  AuthenticatedRoute, 
+  AgentRoute 
+} from "@/components/ProtectedRoute";
 
 // Dynamically import ResetPassword component
 const ResetPassword = lazy(() => import("@/pages/auth/reset-password"));
@@ -90,76 +97,77 @@ function Router() {
       <Route path="/register/finder" component={RegisterFinder} />
       {/* Add reset password route */}
       <Route path="/reset-password" component={ResetPassword} />
-      <Route path="/client/dashboard" component={ClientDashboard} />
-      <Route path="/client/create-find" component={CreateRequest} />
-      <Route path="/client/finds/:id" component={RequestDetails} />
-      <Route path="/client/proposals" component={ViewProposals} />
-      <Route path="/client/proposals/:id" component={ProposalDetail} />
-      <Route path="/client/contracts" component={ClientContracts} />
-      <Route path="/client/contracts/:contractId" component={ContractDetails} />
-      <Route path="/client/browse-finds" component={ClientBrowseRequests} />
-      <Route path="/client/browse-requests" component={ClientBrowseRequests} />
-      <Route path="/client/finds" component={ClientBrowseRequests} />
-      <Route path="/client/profile" component={ClientProfile} />
-      <Route path="/client/profile/:userId" component={ClientProfile} />
-      <Route path="/client/tokens" component={ClientTokens} />
-      <Route path="/client/change-password" component={ChangePassword} />
-      <Route path="/finder/dashboard" component={FinderDashboard} />
-      <Route path="/finder/browse-finds" component={FinderBrowseRequests} />
-      <Route path="/finder/browse-requests" component={FinderBrowseRequests} />
-      <Route path="/finder/finds/:id" component={FinderRequestDetails} />
-      <Route path="/finder/requests/:id" component={FinderRequestDetails} />
-      <Route path="/finder/proposals" component={FinderProposals} />
-      <Route path="/finder/proposals/:id" component={FinderProposalDetails} />
-      <Route path="/finder/contracts" component={FinderContracts} />
-      <Route path="/finder/contracts/:contractId" component={FinderContractDetails} />
-      <Route path="/finder/profile" component={FinderProfile} />
+      <Route path="/client/dashboard" component={() => <ClientRoute><ClientDashboard /></ClientRoute>} />
+      <Route path="/client/create-find" component={() => <ClientRoute><CreateRequest /></ClientRoute>} />
+      <Route path="/client/finds/:id" component={() => <ClientRoute><RequestDetails /></ClientRoute>} />
+      <Route path="/client/proposals" component={() => <ClientRoute><ViewProposals /></ClientRoute>} />
+      <Route path="/client/proposals/:id" component={() => <ClientRoute><ProposalDetail /></ClientRoute>} />
+      <Route path="/client/contracts" component={() => <ClientRoute><ClientContracts /></ClientRoute>} />
+      <Route path="/client/contracts/:contractId" component={() => <ClientRoute><ContractDetails /></ClientRoute>} />
+      <Route path="/client/browse-finds" component={() => <ClientRoute><ClientBrowseRequests /></ClientRoute>} />
+      <Route path="/client/browse-requests" component={() => <ClientRoute><ClientBrowseRequests /></ClientRoute>} />
+      <Route path="/client/finds" component={() => <ClientRoute><ClientBrowseRequests /></ClientRoute>} />
+      <Route path="/client/profile" component={() => <ClientRoute><ClientProfile /></ClientRoute>} />
+      <Route path="/client/profile/:userId" component={() => <ClientRoute><ClientProfile /></ClientRoute>} />
+      <Route path="/client/tokens" component={() => <ClientRoute><ClientTokens /></ClientRoute>} />
+      <Route path="/client/change-password" component={() => <ClientRoute><ChangePassword /></ClientRoute>} />
+      <Route path="/finder/dashboard" component={() => <FinderRoute><FinderDashboard /></FinderRoute>} />
+      <Route path="/finder/browse-finds" component={() => <FinderRoute><FinderBrowseRequests /></FinderRoute>} />
+      <Route path="/finder/browse-requests" component={() => <FinderRoute><FinderBrowseRequests /></FinderRoute>} />
+      <Route path="/finder/finds/:id" component={() => <FinderRoute><FinderRequestDetails /></FinderRoute>} />
+      <Route path="/finder/requests/:id" component={() => <FinderRoute><FinderRequestDetails /></FinderRoute>} />
+      <Route path="/finder/proposals" component={() => <FinderRoute><FinderProposals /></FinderRoute>} />
+      <Route path="/finder/proposals/:id" component={() => <FinderRoute><FinderProposalDetails /></FinderRoute>} />
+      <Route path="/finder/contracts" component={() => <FinderRoute><FinderContracts /></FinderRoute>} />
+      <Route path="/finder/contracts/:contractId" component={() => <FinderRoute><FinderContractDetails /></FinderRoute>} />
+      <Route path="/finder/profile" component={() => <FinderRoute><FinderProfile /></FinderRoute>} />
       <Route path="/finder-profile/:userId" component={FinderPublicProfile} />
-      <Route path="/finder/tokens" component={FinderTokens} />
-      <Route path="/finder/token-purchase" component={FinderTokenPurchase} />
-      <Route path="/finder/payment-success" component={FinderPaymentSuccess} />
-      <Route path="/finder/withdrawals" component={FinderWithdrawals} />
-      <Route path="/finder/security" component={FinderSecurity} />
-      <Route path="/orders/submit/:contractId" component={OrderSubmission} />
-      <Route path="/orders/review/:contractId" component={OrderReview} />
+      <Route path="/finder/tokens" component={() => <FinderRoute><FinderTokens /></FinderRoute>} />
+      <Route path="/finder/token-purchase" component={() => <FinderRoute><FinderTokenPurchase /></FinderRoute>} />
+      <Route path="/finder/payment-success" component={() => <FinderRoute><FinderPaymentSuccess /></FinderRoute>} />
+      <Route path="/finder/withdrawals" component={() => <FinderRoute><FinderWithdrawals /></FinderRoute>} />
+      <Route path="/finder/security" component={() => <FinderRoute><FinderSecurity /></FinderRoute>} />
+      <Route path="/orders/submit/:contractId" component={() => <AuthenticatedRoute><OrderSubmission /></AuthenticatedRoute>} />
+      <Route path="/orders/review/:contractId" component={() => <AuthenticatedRoute><OrderReview /></AuthenticatedRoute>} />
       <Route path="/support" component={SupportIndex} />
       <Route path="/support/help-center" component={HelpCenter} />
       <Route path="/support/contact" component={ContactSupport} />
       <Route path="/terms-and-conditions" component={TermsAndConditions} />
       <Route path="/privacy-policy" component={PrivacyPolicy} />
-      <Route path="/admin/dashboard" component={AdminDashboard} />
-      <Route path="/admin/users" component={AdminUsers} />
-      <Route path="/admin/requests" component={AdminRequests} />
-      <Route path="/admin/categories" component={AdminCategories} />
-      <Route path="/admin/settings" component={AdminSettings} />
-      <Route path="/admin/withdrawals" component={AdminWithdrawals} />
-      <Route path="/admin/token-packages" component={AdminTokenPackages} />
-      <Route path="/admin/token-management" component={AdminTokenManagement} />
-      <Route path="/admin/finder-levels" component={AdminFinderLevels} />
-      <Route path="/admin/withdrawals" component={AdminWithdrawals} />
-      <Route path="/admin/restricted-words" component={AdminRestrictedWords} />
-      <Route path="/admin/support-agents" component={AdminSupportAgents} />
-      <Route path="/admin/faq-management" component={AdminFAQManagement} />
-      <Route path="/admin/faq-categories" component={AdminFAQCategories} />
-      <Route path="/admin/contact-settings" component={AdminContactSettings} />
-      <Route path="/admin/token-packages" component={AdminTokenPackages} />
-      <Route path="/admin/verification-management" component={AdminVerificationManagement} />
+      <Route path="/admin/dashboard" component={() => <AdminRoute><AdminDashboard /></AdminRoute>} />
+      <Route path="/admin/users" component={() => <AdminRoute><AdminUsers /></AdminRoute>} />
+      <Route path="/admin/requests" component={() => <AdminRoute><AdminRequests /></AdminRoute>} />
+      <Route path="/admin/categories" component={() => <AdminRoute><AdminCategories /></AdminRoute>} />
+      <Route path="/admin/settings" component={() => <AdminRoute><AdminSettings /></AdminRoute>} />
+      <Route path="/admin/withdrawals" component={() => <AdminRoute><AdminWithdrawals /></AdminRoute>} />
+      <Route path="/admin/token-packages" component={() => <AdminRoute><AdminTokenPackages /></AdminRoute>} />
+      <Route path="/admin/token-management" component={() => <AdminRoute><AdminTokenManagement /></AdminRoute>} />
+      <Route path="/admin/finder-levels" component={() => <AdminRoute><AdminFinderLevels /></AdminRoute>} />
+      <Route path="/admin/restricted-words" component={() => <AdminRoute><AdminRestrictedWords /></AdminRoute>} />
+      <Route path="/admin/support-agents" component={() => <AdminRoute><AdminSupportAgents /></AdminRoute>} />
+      <Route path="/admin/faq-management" component={() => <AdminRoute><AdminFAQManagement /></AdminRoute>} />
+      <Route path="/admin/faq-categories" component={() => <AdminRoute><AdminFAQCategories /></AdminRoute>} />
+      <Route path="/admin/contact-settings" component={() => <AdminRoute><AdminContactSettings /></AdminRoute>} />
+      <Route path="/admin/verification-management" component={() => <AdminRoute><AdminVerificationManagement /></AdminRoute>} />
       <Route path="/verification" component={Verification} />
 
       {/* Agent Routes */}
-      <Route path="/agent/dashboard" component={AgentDashboard} />
-      <Route path="/agent/tickets" component={AgentTickets} />
-      <Route path="/agent/tickets/:id" component={AgentTicketDetails} />
+      <Route path="/agent/dashboard" component={() => <AgentRoute><AgentDashboard /></AgentRoute>} />
+      <Route path="/agent/tickets" component={() => <AgentRoute><AgentTickets /></AgentRoute>} />
+      <Route path="/agent/tickets/:id" component={() => <AgentRoute><AgentTicketDetails /></AgentRoute>} />
 
       {/* Blog Routes */}
-      <Route path="/admin/blog-posts" component={AdminBlogPosts} />
-      <Route path="/admin/blog-posts/create" component={AdminBlogPostCreate} />
-      <Route path="/admin/blog-posts/edit/:id" component={AdminBlogPostEdit} />
-      <Route path="/admin/strike-system" component={AdminStrikeSystem} />
-      <Route path="/admin/financial-dashboard" component={lazy(() => import("@/pages/admin/financial-dashboard"))} />
+      <Route path="/admin/blog-posts" component={() => <AdminRoute><AdminBlogPosts /></AdminRoute>} />
+      <Route path="/admin/blog-posts/create" component={() => <AdminRoute><AdminBlogPostCreate /></AdminRoute>} />
+      <Route path="/admin/blog-posts/edit/:id" component={() => <AdminRoute><AdminBlogPostEdit /></AdminRoute>} />
+      <Route path="/admin/strike-system" component={() => <AdminRoute><AdminStrikeSystem /></AdminRoute>} />
+      <Route path="/admin/financial-dashboard" component={() => {
+        const FinancialDashboard = lazy(() => import("@/pages/admin/financial-dashboard"));
+        return <AdminRoute><FinancialDashboard /></AdminRoute>;
+      }} />
       <Route path="/blog/:slug" component={BlogPost} />
-      <Route path="/messages" component={Messages} />
-      <Route path="/messages/:conversationId" component={ConversationDetail} />
+      <Route path="/messages" component={() => <AuthenticatedRoute><Messages /></AuthenticatedRoute>} />
+      <Route path="/messages/:conversationId" component={() => <AuthenticatedRoute><ConversationDetail /></AuthenticatedRoute>} />
       <Route path="/finder-profile/:finderId" component={FinderPublicProfile} />
       <Route component={NotFound} />
     </Switch>
