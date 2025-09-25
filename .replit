@@ -22,10 +22,6 @@ externalPort = 3001
 localPort = 40595
 externalPort = 3000
 
-[[ports]]
-localPort = 45875
-externalPort = 3002
-
 [env]
 PORT = "5000"
 DATABASE_URL = "postgresql://username:password@localhost:5432/findermeister"
