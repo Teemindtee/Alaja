@@ -3042,8 +3042,7 @@ export class DatabaseStorage implements IStorage {
       const updateData: any = {
         status,
         reviewedBy,
-        reviewedAt: new Date(),
-        updatedAt: new Date()
+        reviewedAt: new Date()
       };
 
       if (rejectionReason) {

@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import ClientHeader from "@/components/client-header";
+import { FinderHeader } from "@/components/finder-header";
 import {
   CheckCircle,
   Clock,
@@ -124,10 +126,14 @@ export default function Verification() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/20 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="text-gray-600 mt-4 font-medium">Loading verification status...</p>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/20">
+        {user?.role === 'client' && <ClientHeader currentPage="verification" />}
+        {user?.role === 'finder' && <FinderHeader currentPage="verification" />}
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+            <p className="text-gray-600 mt-4 font-medium">Loading verification status...</p>
+          </div>
         </div>
       </div>
     );
@@ -136,6 +142,8 @@ export default function Verification() {
   if (!verificationStatus?.isRequired) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/20">
+        {user?.role === 'client' && <ClientHeader currentPage="verification" />}
+        {user?.role === 'finder' && <FinderHeader currentPage="verification" />}
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
           <Card>
             <CardContent className="py-12 text-center">
@@ -155,6 +163,8 @@ export default function Verification() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/20">
+      {user?.role === 'client' && <ClientHeader currentPage="verification" />}
+      {user?.role === 'finder' && <FinderHeader currentPage="verification" />}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         {/* Header */}
         <div className="mb-8 text-center">

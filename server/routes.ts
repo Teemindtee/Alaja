@@ -57,26 +57,7 @@ async function requireAdmin(req: AuthenticatedRequest, res: Response, next: Next
     res.status(403).json({ message: 'Admin access required' });
   }
 }
-// Admin Settings endpoint
-  app.put("/api/admin/settings", authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const settings = req.body;
-      
-      // Update each setting
-      for (const [key, value] of Object.entries(settings)) {
-        if (typeof value === 'string') {
-          await storage.setAdminSetting(key, value);
-        }
-      }
-      
-      res.json({ message: "Settings updated successfully" });
-    } catch (error) {
-      console.error('Admin settings update error:', error);
-      res.status(500).json({ message: "Failed to update settings" });
-    }
-  });
-
-  // --- End Middleware ---
+// --- End Middleware ---
 
 // Configure multer for file uploads
 const storage_multer = multer.diskStorage({
@@ -127,6 +108,35 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded files statically
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+  // Admin Settings endpoint
+  app.put("/api/admin/settings", authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const settings = req.body;
+      
+      // Update each setting
+      for (const [key, value] of Object.entries(settings)) {
+        if (typeof value === 'string') {
+          await storage.setAdminSetting(key, value);
+        }
+      }
+      
+      res.json({ message: "Settings updated successfully" });
+    } catch (error) {
+      console.error('Admin settings update error:', error);
+      res.status(500).json({ message: "Failed to update settings" });
+    }
+  });
+
+  app.get("/api/admin/settings", authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const settings = await storage.getAdminSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error('Admin settings get error:', error);
+      res.status(500).json({ message: "Failed to get settings" });
+    }
+  });
 
   // --- Authentication Routes ---
   app.post("/api/auth/register", async (req, res) => {
@@ -1075,6 +1085,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Accept proposal error:', error);
       res.status(500).json({ message: "Failed to accept proposal and create contract" });
+    }
+  });
+
+  // --- User Verification Routes ---
+  // Get verification status for current user
+  app.get("/api/verification/status", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      // Check if verification is required from admin settings
+      const settings = await storage.getAdminSettings();
+      const verificationRequired = settings.verificationRequired === 'true';
+
+      if (!verificationRequired) {
+        return res.json({
+          isRequired: false,
+          verification: null
+        });
+      }
+
+      // Get user's verification status
+      const verification = await storage.getVerificationByUserId(req.user.userId);
+
+      res.json({
+        isRequired: true,
+        verification: verification || null
+      });
+    } catch (error) {
+      console.error('Error getting verification status:', error);
+      res.status(500).json({ message: "Failed to get verification status" });
+    }
+  });
+
+  // Submit verification
+  app.post("/api/verification/submit", authenticateToken, upload.fields([
+    { name: 'documentFront', maxCount: 1 },
+    { name: 'documentBack', maxCount: 1 },
+    { name: 'selfie', maxCount: 1 }
+  ]), async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { documentType } = req.body;
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+      if (!documentType || !files.documentFront || !files.selfie) {
+        return res.status(400).json({ message: "Document type, document front, and selfie are required" });
+      }
+
+      // Check if user already has a pending verification
+      const existingVerification = await storage.getVerificationByUserId(req.user.userId);
+      if (existingVerification && existingVerification.status === 'pending') {
+        return res.status(400).json({ message: "You already have a pending verification request" });
+      }
+
+      const verificationData = {
+        userId: req.user.userId,
+        documentType,
+        documentFrontImage: `/uploads/${files.documentFront[0].filename}`,
+        documentBackImage: files.documentBack ? `/uploads/${files.documentBack[0].filename}` : null,
+        selfieImage: `/uploads/${files.selfie[0].filename}`,
+        status: 'pending'
+      };
+
+      const verification = await storage.submitVerification(verificationData);
+
+      res.status(201).json({
+        message: "Verification submitted successfully",
+        verification
+      });
+    } catch (error) {
+      console.error('Error submitting verification:', error);
+      res.status(500).json({ message: "Failed to submit verification" });
     }
   });
 
