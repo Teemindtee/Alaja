@@ -90,3 +90,5 @@ export function FileUploader({
     </div>
   );
 }
+
+export default FileUploader;
