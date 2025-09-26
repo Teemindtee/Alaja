@@ -53,21 +53,23 @@ export default function AdminContactSettings() {
   // Update form data when settings are loaded
   React.useEffect(() => {
     if (settings) {
-      setFormData({
-        supportEmail: settings.supportEmail || "",
-        supportPhone: settings.supportPhone || "",
-        officeAddress: settings.officeAddress || "",
-        businessHours: settings.businessHours || "",
-        facebookUrl: settings.facebookUrl || "",
-        twitterUrl: settings.twitterUrl || "",
-        instagramUrl: settings.instagramUrl || "",
-        tiktokUrl: settings.tiktokUrl || "",
-        linkedinUrl: settings.linkedinUrl || "",
-        whatsappNumber: settings.whatsappNumber || "",
-        responseTimeLow: settings.responseTimeLow || "",
-        responseTimeMedium: settings.responseTimeMedium || "",
-        responseTimeHigh: settings.responseTimeHigh || "",
-        responseTimeUrgent: settings.responseTimeUrgent || ""
+      startTransition(() => {
+        setFormData({
+          supportEmail: settings.supportEmail || "",
+          supportPhone: settings.supportPhone || "",
+          officeAddress: settings.officeAddress || "",
+          businessHours: settings.businessHours || "",
+          facebookUrl: settings.facebookUrl || "",
+          twitterUrl: settings.twitterUrl || "",
+          instagramUrl: settings.instagramUrl || "",
+          tiktokUrl: settings.tiktokUrl || "",
+          linkedinUrl: settings.linkedinUrl || "",
+          whatsappNumber: settings.whatsappNumber || "",
+          responseTimeLow: settings.responseTimeLow || "",
+          responseTimeMedium: settings.responseTimeMedium || "",
+          responseTimeHigh: settings.responseTimeHigh || "",
+          responseTimeUrgent: settings.responseTimeUrgent || ""
+        });
       });
     }
   }, [settings]);
@@ -96,9 +98,7 @@ export default function AdminContactSettings() {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    startTransition(() => {
-      setFormData(prev => ({ ...prev, [field]: value }));
-    });
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   if (isLoading) {
