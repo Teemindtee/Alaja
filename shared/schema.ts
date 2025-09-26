@@ -776,15 +776,15 @@ export const contactSettings = pgTable("contact_settings", {
 
 // FAQ Categories Table
 export const faqCategories = pgTable("faq_categories", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   description: text("description"),
-  icon: text("icon").default("HelpCircle"),
-  color: text("color").default("bg-blue-100 text-blue-800"),
+  icon: text("icon").default('HelpCircle'),
+  color: text("color").default('bg-blue-100 text-blue-800'),
   sortOrder: integer("sort_order").default(0),
-  isActive: boolean("is_active").default(true),
+  isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
 });
 
 // User Verification Table
