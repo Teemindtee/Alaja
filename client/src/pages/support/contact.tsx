@@ -374,7 +374,7 @@ export default function ContactSupport() {
             </Card>
 
             {/* Social Media Links */}
-            {contactSettings && (contactSettings.facebookUrl || contactSettings.twitterUrl || contactSettings.instagramUrl || contactSettings.linkedinUrl) && (
+            {contactSettings && (contactSettings.facebookUrl || contactSettings.twitterUrl || contactSettings.instagramUrl || contactSettings.linkedinUrl || contactSettings.tiktokUrl) && (
               <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
                 <CardHeader className="pb-4">
                   <CardTitle className="flex items-center text-lg">
@@ -389,10 +389,10 @@ export default function ContactSupport() {
                         href={contactSettings.facebookUrl} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="flex items-center space-x-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                        className="flex items-center justify-center w-12 h-12 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors group"
+                        title="Follow us on Facebook"
                       >
-                        <Facebook className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm text-blue-600">Facebook</span>
+                        <Facebook className="w-6 h-6 text-blue-600 group-hover:scale-110 transition-transform" />
                       </a>
                     )}
                     {contactSettings.twitterUrl && (
@@ -400,10 +400,10 @@ export default function ContactSupport() {
                         href={contactSettings.twitterUrl} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="flex items-center space-x-2 px-3 py-2 bg-sky-50 hover:bg-sky-100 rounded-lg transition-colors"
+                        className="flex items-center justify-center w-12 h-12 bg-sky-50 hover:bg-sky-100 rounded-lg transition-colors group"
+                        title="Follow us on Twitter/X"
                       >
-                        <Twitter className="w-4 h-4 text-sky-600" />
-                        <span className="text-sm text-sky-600">Twitter</span>
+                        <Twitter className="w-6 h-6 text-sky-600 group-hover:scale-110 transition-transform" />
                       </a>
                     )}
                     {contactSettings.instagramUrl && (
@@ -411,10 +411,10 @@ export default function ContactSupport() {
                         href={contactSettings.instagramUrl} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="flex items-center space-x-2 px-3 py-2 bg-pink-50 hover:bg-pink-100 rounded-lg transition-colors"
+                        className="flex items-center justify-center w-12 h-12 bg-pink-50 hover:bg-pink-100 rounded-lg transition-colors group"
+                        title="Follow us on Instagram"
                       >
-                        <Instagram className="w-4 h-4 text-pink-600" />
-                        <span className="text-sm text-pink-600">Instagram</span>
+                        <Instagram className="w-6 h-6 text-pink-600 group-hover:scale-110 transition-transform" />
                       </a>
                     )}
                     {contactSettings.linkedinUrl && (
@@ -422,10 +422,21 @@ export default function ContactSupport() {
                         href={contactSettings.linkedinUrl} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="flex items-center space-x-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                        className="flex items-center justify-center w-12 h-12 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors group"
+                        title="Follow us on LinkedIn"
                       >
-                        <Linkedin className="w-4 h-4 text-blue-700" />
-                        <span className="text-sm text-blue-700">LinkedIn</span>
+                        <Linkedin className="w-6 h-6 text-blue-700 group-hover:scale-110 transition-transform" />
+                      </a>
+                    )}
+                    {contactSettings.tiktokUrl && (
+                      <a 
+                        href={contactSettings.tiktokUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center w-12 h-12 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors group"
+                        title="Follow us on TikTok"
+                      >
+                        <MessageCircle className="w-6 h-6 text-gray-700 group-hover:scale-110 transition-transform" />
                       </a>
                     )}
                   </div>
