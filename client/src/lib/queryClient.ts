@@ -90,8 +90,23 @@ export const apiRequest = async (url: string, options: RequestInit = {}): Promis
       throw new Error('Unauthorized');
     }
 
-    const errorData = await response.json().catch(() => ({ message: 'Request failed' }));
-    throw new Error(errorData.message || `Request failed: ${response.status}`);
+    // Try to parse error response as JSON, fallback to status text
+    let errorMessage = `Request failed: ${response.status}`;
+    try {
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } else {
+        // For non-JSON responses (like multipart errors), use status text
+        errorMessage = response.statusText || errorMessage;
+      }
+    } catch (parseError) {
+      // If we can't parse the response, use the default message
+      console.warn('Failed to parse error response:', parseError);
+    }
+    
+    throw new Error(errorMessage);
   }
 
   return response.json();
