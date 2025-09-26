@@ -72,6 +72,7 @@ import Verification from "./pages/verification";
 import AgentDashboard from "@/pages/agent/dashboard";
 import AgentTickets from "@/pages/agent/tickets";
 import AgentTicketDetails from "@/pages/agent/ticket-details";
+import AdminContactSettings from "./pages/admin/contact-settings";
 import { 
   AdminRoute, 
   FinderRoute, 
@@ -84,8 +85,6 @@ import {
 const ResetPassword = lazy(() => import("@/pages/auth/reset-password"));
 // Dynamically import AdminFAQCategories component
 const AdminFAQCategories = lazy(() => import("./pages/admin/faq-categories"));
-// Dynamically import AdminContactSettings component
-const AdminContactSettings = lazy(() => import("./pages/admin/contact-settings"));
 
 // Component to guard auth pages from logged in users
 function AuthGuard({ children }: { children: React.ReactNode }) {
