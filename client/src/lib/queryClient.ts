@@ -20,6 +20,32 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+function getAuthToken() {
+  return localStorage.getItem('findermeister_token') || localStorage.getItem('token');
+}
+
+type UnauthorizedBehavior = "returnNull" | "throw";
+
+export const getQueryFn: <T>(options: {
+  on401: UnauthorizedBehavior;
+}) => QueryFunction<T> =
+  ({ on401: unauthorizedBehavior }) =>
+  async ({ queryKey }) => {
+    const token = getAuthToken();
+    const res = await fetch(queryKey.join("/") as string, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+      return null;
+    }
+
+    await throwIfResNotOk(res);
+    return await res.json();
+  };
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -34,10 +60,6 @@ export const queryClient = new QueryClient({
     },
   },
 });
-
-function getAuthToken() {
-  return localStorage.getItem('findermeister_token') || localStorage.getItem('token');
-}
 
 export const apiRequest = async (url: string, options: RequestInit = {}): Promise<any> => {
   const token = getAuthToken();
@@ -73,55 +95,4 @@ export const apiRequest = async (url: string, options: RequestInit = {}): Promis
   }
 
   return response.json();
-};
-
-type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
-  on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    const token = getAuthToken();
-    const res = await fetch(queryKey.join("/") as string, {
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    });
-
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
-    }
-
-    await throwIfResNotOk(res);
-    return await res.json();
-  };
-
-const defaultQueryFn = async ({ queryKey }: { queryKey: string[] }): Promise<any> => {
-  const url = queryKey[0];
-  const token = getAuthToken();
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json'
-  };
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  const res = await fetch(url, {
-    headers
-  });
-
-  if (!res.ok) {
-    if (res.status === 401) {
-      // Clear token and redirect to login on 401
-      localStorage.removeItem('token');
-      localStorage.removeItem('findermeister_token');
-      window.location.href = '/login';
-      throw new Error('Unauthorized');
-    }
-    throw new Error(`Request failed: ${res.status}`);
-  }
-
-  return res.json();
 };
