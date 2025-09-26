@@ -1,24 +1,24 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import { 
-  Handshake, 
-  User, 
-  Wallet, 
-  CreditCard, 
-  Shield, 
-  Settings, 
+import {
+  Handshake,
+  User,
+  Wallet,
+  CreditCard,
+  Shield,
+  Settings,
   LogOut,
   ChevronDown,
   Menu,
@@ -26,11 +26,14 @@ import {
   Search,
   Home,
   MessageCircle,
-  Clock
+  Clock,
+  AlertTriangle
 } from "lucide-react";
 import logoImage from "@assets/Findermeister logo_1755186313310.jpg";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useTranslation } from "react-i18next";
+import { Badge } from "@/components/ui/badge";
+
 
 interface FinderHeaderProps {
   currentPage?: string;
@@ -65,9 +68,23 @@ export function FinderHeader({ currentPage }: FinderHeaderProps) {
     enabled: !!user && user.role === 'finder'
   });
 
+  // Check verification status
+  const { data: verificationStatus } = useQuery({
+    queryKey: ['/api/verification/status'],
+    enabled: !!user && user.role === 'finder'
+  });
+
+
   const handleLogout = () => {
     logout();
+    window.location.href = "/";
   };
+
+  // Check if finder is verified
+  const isVerified = user?.isVerified || false;
+  const requiresVerification = verificationStatus?.isRequired || false;
+  const showVerificationAlert = requiresVerification && !isVerified;
+
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
@@ -77,30 +94,30 @@ export function FinderHeader({ currentPage }: FinderHeaderProps) {
     <header className="bg-finder-red text-white px-4 sm:px-6 py-4">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
         <Link href="/" className="flex items-center space-x-2">
-          <img 
-            src={logoImage} 
-            alt="FinderMeister Logo" 
-            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-contain bg-white p-1" 
+          <img
+            src={logoImage}
+            alt="FinderMeister Logo"
+            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-contain bg-white p-1"
           />
           <span className="text-lg sm:text-xl font-bold">FinderMeister</span>
         </Link>
-        
+
         <nav className="flex items-center space-x-2 md:space-x-4">
           {/* Desktop Navigation */}
-          <Link 
-            href="/finder/dashboard" 
+          <Link
+            href="/finder/dashboard"
             className={`hidden md:inline hover:underline text-sm ${currentPage === 'dashboard' ? 'font-semibold' : ''}`}
           >
             Dashboard
           </Link>
-          <Link 
-            href="/finder/browse-finds" 
+          <Link
+            href="/finder/browse-finds"
             className={`hidden md:inline hover:underline text-sm ${currentPage === 'browse' ? 'font-semibold' : ''}`}
           >
             Browse Finds
           </Link>
-          <Link 
-            href="/finder/contracts" 
+          <Link
+            href="/finder/contracts"
             className={`hidden md:inline hover:underline text-sm ${currentPage === 'contracts' ? 'font-semibold' : ''}`}
           >
             My Contracts
@@ -109,8 +126,8 @@ export function FinderHeader({ currentPage }: FinderHeaderProps) {
           {/* Mobile Navigation Menu */}
           <DropdownMenu open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 className="md:hidden text-white hover:bg-white/10 p-2"
               >
                 <Menu className="w-5 h-5" />
@@ -144,8 +161,8 @@ export function FinderHeader({ currentPage }: FinderHeaderProps) {
           {/* User Dropdown Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 className="flex items-center space-x-2 text-white hover:bg-white/10 px-2 sm:px-3"
               >
                 <Avatar className="w-8 h-8">
@@ -183,50 +200,67 @@ export function FinderHeader({ currentPage }: FinderHeaderProps) {
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">{user?.firstName} {user?.lastName}</p>
                   <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                  {showVerificationAlert && (
+                    <div className="mt-2">
+                      <Badge variant="outline" className="text-yellow-700 border-yellow-300 bg-yellow-50">
+                        <AlertTriangle className="w-3 h-3 mr-1" />
+                        Verification Required
+                      </Badge>
+                    </div>
+                  )}
                 </div>
               </DropdownMenuLabel>
-              
+
               <DropdownMenuSeparator />
-              
+
               <DropdownMenuItem asChild>
                 <Link href="/messages" className="flex items-center cursor-pointer px-3 py-2">
                   <MessageCircle className="mr-2 h-4 w-4" />
                   Messages
                 </Link>
               </DropdownMenuItem>
-              
+
               <DropdownMenuItem asChild>
                 <Link href="/finder/tokens" className="flex items-center cursor-pointer px-3 py-2">
                   <Wallet className="mr-2 h-4 w-4" />
                   Findertokens
                 </Link>
               </DropdownMenuItem>
-              
+
               <DropdownMenuSeparator />
-              
+
               <DropdownMenuItem asChild>
                 <Link href="/finder/profile" className="flex items-center cursor-pointer px-3 py-2">
                   <User className="mr-2 h-4 w-4" />
                   Profile
                 </Link>
               </DropdownMenuItem>
-              
+
               <DropdownMenuItem asChild>
                 <Link href="/finder/withdrawals" className="flex items-center cursor-pointer px-3 py-2">
                   <CreditCard className="mr-2 h-4 w-4" />
                   Withdrawals
                 </Link>
               </DropdownMenuItem>
-              
+
               <DropdownMenuItem asChild>
-                <Link href="/finder/security" className="flex items-center cursor-pointer px-3 py-2">
+                <Link href="/finder/security" className="flex items-center px-3 py-2">
                   <Shield className="mr-2 h-4 w-4" />
                   Security
                 </Link>
               </DropdownMenuItem>
-              
+              {requiresVerification && (
+                <DropdownMenuItem asChild>
+                  <Link href="/verification" className={`flex items-center px-3 py-2 ${showVerificationAlert ? 'text-yellow-700 bg-yellow-50' : 'text-gray-700'}`}>
+                    <Shield className="w-4 h-4 mr-3" />
+                    Account Verification
+                    {showVerificationAlert && <AlertTriangle className="w-3 h-3 ml-auto text-yellow-600" />}
+                  </Link>
+                </DropdownMenuItem>
+              )}
+
               <DropdownMenuSeparator />
-              
+
               <DropdownMenuItem onClick={handleLogout} className="cursor-pointer px-3 py-2 text-red-600 focus:text-red-600">
                 <LogOut className="mr-2 h-4 w-4" />
                 Log Out

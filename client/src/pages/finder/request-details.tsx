@@ -7,10 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FinderHeader } from "@/components/finder-header";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Clock, Banknote, MapPin, Send } from "lucide-react";
+import { ArrowLeft, Clock, Banknote, MapPin, Send, Shield, AlertTriangle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import type { Find, Proposal } from "@shared/schema";
 
@@ -43,7 +44,11 @@ export default function FinderRequestDetails() {
     enabled: !!findId && !!user
   });
 
-
+  // Check verification status
+  const { data: verificationStatus, isLoading: verificationLoading } = useQuery({
+    queryKey: ['/api/verification/status'],
+    enabled: !!user && user.role === 'finder'
+  });
 
   // For finders, only show their own proposals (like comments under a post)
   const { data: proposals = [], isLoading: proposalsLoading } = useQuery<Proposal[]>({
@@ -88,7 +93,11 @@ export default function FinderRequestDetails() {
   // if proposals array has any item, it means the finder already submitted a proposal
   const userProposal = proposals.length > 0 ? proposals[0] : null;
 
-  if (findLoading || proposalsLoading) {
+  // Check if finder is verified
+  const isVerified = user?.isVerified || false;
+  const requiresVerification = verificationStatus?.isRequired || false;
+
+  if (findLoading || proposalsLoading || verificationLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -222,9 +231,28 @@ export default function FinderRequestDetails() {
                     )}
                   </div>
                 ) : find.status === 'open' ? (
-                  // Show proposal form
+                  // Check verification before showing proposal form
                   <div>
-                    {!showProposalForm ? (
+                    {requiresVerification && !isVerified ? (
+                      // Show verification required alert
+                      <Alert className="border-yellow-200 bg-yellow-50">
+                        <Shield className="h-4 w-4 text-yellow-600" />
+                        <AlertDescription className="text-yellow-800">
+                          <div className="space-y-3">
+                            <p className="font-medium">Account Verification Required</p>
+                            <p className="text-sm">
+                              You must verify your account before you can submit proposals. This helps maintain trust and security on our platform.
+                            </p>
+                            <Link href="/verification">
+                              <Button size="sm" className="bg-yellow-600 hover:bg-yellow-700 text-white">
+                                <Shield className="w-4 h-4 mr-2" />
+                                Verify Account
+                              </Button>
+                            </Link>
+                          </div>
+                        </AlertDescription>
+                      </Alert>
+                    ) : !showProposalForm ? (
                       <div className="text-center py-6">
                         <p className="text-gray-600 mb-4">
                           This request is available for proposals. Submit your proposal to be considered.

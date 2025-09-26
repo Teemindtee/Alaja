@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -12,8 +12,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
+import { Shield, AlertTriangle } from "lucide-react";
+import { Link } from "wouter";
 
 interface Request {
   id: string;
@@ -34,6 +38,7 @@ interface SubmitProposalModalProps {
 
 export default function SubmitProposalModal({ isOpen, onClose, request }: SubmitProposalModalProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   
   const [formData, setFormData] = useState({
@@ -41,6 +46,12 @@ export default function SubmitProposalModal({ isOpen, onClose, request }: Submit
     price: "",
     timeline: "",
     notes: "",
+  });
+
+  // Check verification status
+  const { data: verificationStatus } = useQuery({
+    queryKey: ['/api/verification/status'],
+    enabled: !!user && user.role === 'finder' && isOpen
   });
 
   const submitProposalMutation = useMutation({
@@ -126,6 +137,10 @@ export default function SubmitProposalModal({ isOpen, onClose, request }: Submit
 
   if (!request) return null;
 
+  // Check if finder is verified
+  const isVerified = user?.isVerified || false;
+  const requiresVerification = verificationStatus?.isRequired || false;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -148,7 +163,32 @@ export default function SubmitProposalModal({ isOpen, onClose, request }: Submit
           </CardContent>
         </Card>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {requiresVerification && !isVerified ? (
+          // Show verification required message
+          <Alert className="border-yellow-200 bg-yellow-50">
+            <Shield className="h-4 w-4 text-yellow-600" />
+            <AlertDescription className="text-yellow-800">
+              <div className="space-y-3">
+                <p className="font-medium">Account Verification Required</p>
+                <p className="text-sm">
+                  You must verify your account before you can submit proposals. This helps maintain trust and security on our platform.
+                </p>
+                <div className="flex space-x-3">
+                  <Link href="/verification">
+                    <Button size="sm" className="bg-yellow-600 hover:bg-yellow-700 text-white" onClick={onClose}>
+                      <Shield className="w-4 h-4 mr-2" />
+                      Verify Account
+                    </Button>
+                  </Link>
+                  <Button size="sm" variant="outline" onClick={onClose}>
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <Label htmlFor="approach">Your Approach</Label>
             <Textarea
@@ -234,6 +274,7 @@ export default function SubmitProposalModal({ isOpen, onClose, request }: Submit
             </div>
           </div>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );
