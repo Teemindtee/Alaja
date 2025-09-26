@@ -63,6 +63,9 @@ export default function FinderContracts() {
     if (contract.isCompleted) {
       return <Badge variant="default" className="bg-green-100 text-green-800">Completed</Badge>;
     }
+    if (contract.escrowStatus === 'pending') {
+      return <Badge variant="default" className="bg-yellow-100 text-yellow-800">Hired, Awaiting Funding</Badge>;
+    }
     if (contract.hasSubmission) {
       return <Badge variant="default" className="bg-blue-100 text-blue-800">Under Review</Badge>;
     }
@@ -155,7 +158,12 @@ export default function FinderContracts() {
                         )}
                       </div>
                       <div className="flex items-center space-x-3">
-                        {contract.hasSubmission ? (
+                        {contract.escrowStatus === 'pending' ? (
+                          <Badge variant="outline" className="text-yellow-600 border-yellow-200">
+                            <Clock className="w-3 h-3 mr-1" />
+                            Awaiting Funding
+                          </Badge>
+                        ) : contract.hasSubmission ? (
                           <Badge variant="outline" className="text-blue-600 border-blue-200">
                             <Upload className="w-3 h-3 mr-1" />
                             Submitted

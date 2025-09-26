@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams } from "wouter";
+import { useParams, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { FinderHeader } from "@/components/finder-header";
-import { Upload, FileText, Calendar, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Upload, FileText, Calendar, Clock, CheckCircle, XCircle, AlertTriangle, ArrowLeft } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -20,6 +20,7 @@ interface Contract {
   hasSubmission: boolean;
   isCompleted: boolean;
   createdAt: string;
+  escrowStatus: string; // Added escrowStatus to the interface
   orderSubmission?: {
     id: string;
     submissionText?: string;
@@ -103,7 +104,7 @@ export default function OrderSubmissionPage() {
 
   const handleSubmit = () => {
     if (!contractId) return;
-    
+
     if (!submissionText?.trim() && attachmentPaths.length === 0) {
       toast({
         title: "Please add submission text or upload files",
@@ -146,11 +147,37 @@ export default function OrderSubmissionPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <FinderHeader />
-        <div className="container mx-auto px-4 py-8">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-            <div className="h-64 bg-gray-200 rounded"></div>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-finder-red mx-auto"></div>
+            <p className="text-gray-600 mt-4">Loading contract details...</p>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if contract is funded before allowing submission
+  if (contract && contract.escrowStatus === 'pending') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <FinderHeader />
+        <div className="max-w-4xl mx-auto py-8 px-6">
+          <Card className="border-yellow-200 bg-yellow-50">
+            <CardContent className="py-12 text-center">
+              <AlertTriangle className="w-16 h-16 text-yellow-600 mx-auto mb-6" />
+              <h2 className="text-2xl font-bold text-yellow-900 mb-4">Contract Not Yet Funded</h2>
+              <p className="text-yellow-800 mb-6 max-w-md mx-auto">
+                This contract is awaiting funding from the client. You cannot submit work until the contract escrow has been funded.
+              </p>
+              <Link href="/finder/contracts">
+                <Button variant="outline" className="border-yellow-600 text-yellow-700 hover:bg-yellow-100">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Contracts
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -224,7 +251,7 @@ export default function OrderSubmissionPage() {
                   {formatDate(contract.orderSubmission.submittedAt)}
                 </p>
               </div>
-              
+
               {contract.orderSubmission.submissionText && (
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Submission Text</Label>

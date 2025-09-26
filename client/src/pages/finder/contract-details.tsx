@@ -131,6 +131,9 @@ export default function FinderContractDetails() {
     if (contract.isCompleted) {
       return <Badge className="bg-green-100 text-green-800">{t('contract.completed')}</Badge>;
     }
+    if (contract.escrowStatus === 'pending') {
+      return <Badge className="bg-yellow-100 text-yellow-800">Hired, Awaiting Funding</Badge>;
+    }
     if (contract.hasSubmission) {
       return <Badge className="bg-yellow-100 text-yellow-800">{t('contract.under_review')}</Badge>;
     }
@@ -228,6 +231,24 @@ export default function FinderContractDetails() {
             </CardContent>
           </Card>
 
+          {/* Funding Warning */}
+          {contract.escrowStatus === 'pending' && (
+            <Card className="border-yellow-200 bg-yellow-50">
+              <CardContent className="pt-6">
+                <div className="flex items-start space-x-3">
+                  <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                  <div>
+                    <h3 className="font-medium text-yellow-900">Contract Awaiting Funding</h3>
+                    <p className="text-sm text-yellow-800 mt-1">
+                      You have been hired for this project! However, work cannot begin until the client funds the contract escrow. 
+                      You will be notified once the contract is funded and ready to start.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Submission Status */}
           <Card>
             <CardHeader>
@@ -237,7 +258,29 @@ export default function FinderContractDetails() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {contract.isCompleted ? (
+              {contract.escrowStatus === 'pending' ? (
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-3 text-yellow-600">
+                    <Clock className="w-6 h-6" />
+                    <div>
+                      <p className="font-medium">Awaiting Contract Funding</p>
+                      <p className="text-sm text-gray-600">
+                        Work submission is disabled until the client funds the contract escrow.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-4">
+                    <Button disabled className="bg-gray-300 text-gray-500 cursor-not-allowed">
+                      <Upload className="w-4 h-4 mr-2" />
+                      Submit Work (Disabled)
+                    </Button>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Work submission will be enabled once contract is funded
+                    </p>
+                  </div>
+                </div>
+              ) : contract.isCompleted ? (
                 <div className="flex items-center space-x-3 text-green-600">
                   <CheckCircle className="w-6 h-6" />
                   <div>

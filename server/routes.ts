@@ -1035,6 +1035,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied" });
       }
 
+      // Check if find already has an accepted proposal (prevent multiple hiring)
+      const hasAcceptedProposal = await storage.hasAcceptedProposal(proposal.findId);
+      if (hasAcceptedProposal) {
+        return res.status(400).json({ message: "This find already has an accepted proposal. You cannot hire multiple finders for the same find." });
+      }
+
       // Get finder and client details for email notification
       const finder = await storage.getFinder(proposal.finderId);
       const finderUser = finder ? await storage.getUser(finder.userId) : null;
@@ -1042,6 +1048,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update proposal status
       await storage.updateProposal(id, { status: 'accepted' });
+
+      // Update find status to in_progress to prevent other hires
+      await storage.updateFind(proposal.findId, { status: 'in_progress' });
 
       // Create contract with pending escrow status (payment required)
       const contract = await storage.createContract({

@@ -39,30 +39,33 @@ export default function ViewProposals() {
 
   const acceptProposal = useMutation({
     mutationFn: async (proposalId: string) => {
-      return apiRequest("/api/proposals/" + proposalId + "/accept", {
+      return apiRequest(`/api/proposals/${proposalId}/accept`, {
         method: "POST",
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/client/proposals'] });
+    onSuccess: (data) => {
       toast({
         title: "Proposal Accepted!",
-        description: "You can now start working with this finder.",
+        description: `You've successfully hired ${data.contract.finderName}. Please fund the contract to begin work.`,
       });
+      navigate(`/client/contracts/${data.contract.id}`);
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         variant: "destructive",
-        title: "Failed to Accept Proposal",
-        description: "Please try again later.",
+        title: "Failed to accept proposal",
+        description: error.message || "Something went wrong. Please try again.",
       });
-    }
+    },
   });
+
+  // Check if any proposal has been accepted for this find
+  const hasAcceptedProposal = proposals?.some((p: any) => p.status === 'accepted') || false;
 
   const createConversation = useMutation({
     mutationFn: async (proposalId: string) => {
       console.log('Creating conversation for proposal:', proposalId);
-      
+
       return apiRequest("/api/messages/conversations", {
         method: "POST",
         body: JSON.stringify({
@@ -135,7 +138,7 @@ export default function ViewProposals() {
           <p className="text-sm sm:text-lg text-slate-600 mb-4">
             Review proposals from talented finders and choose the best match for your project
           </p>
-          
+
           {/* Quick Actions */}
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center">
             <Button 
@@ -269,13 +272,18 @@ export default function ViewProposals() {
                         <>
                           <Button 
                             onClick={() => acceptProposal.mutate(proposal.id)}
-                            disabled={acceptProposal.isPending}
-                            className="w-full bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                            disabled={acceptProposal.isPending || hasAcceptedProposal}
+                            className="w-full bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 disabled:bg-gray-300 disabled:text-gray-500"
                           >
                             {acceptProposal.isPending ? (
                               <>
                                 <Loader2 className="animate-spin w-4 h-4 mr-2" />
                                 Hiring...
+                              </>
+                            ) : hasAcceptedProposal ? (
+                              <>
+                                <CheckCircle2 className="w-4 h-4 mr-2" />
+                                Another Finder Hired
                               </>
                             ) : (
                               <>
@@ -322,7 +330,7 @@ export default function ViewProposals() {
                             ) : (
                               <>
                                 <MessageCircle className="w-4 h-4 mr-2" />
-                                Continue Chat
+                                Message Finder
                               </>
                             )}
                           </Button>
@@ -341,7 +349,7 @@ export default function ViewProposals() {
                             {(proposal.finderName || "Unknown").split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
                           </AvatarFallback>
                         </Avatar>
-                        
+
                         <div className="flex-1">
                           <div className="flex items-center justify-between mb-3">
                             <div>
@@ -364,7 +372,7 @@ export default function ViewProposals() {
                                 </div>
                               </div>
                             </div>
-                            
+
                             {/* Price Display */}
                             <div className="text-right">
                               <div className="text-2xl font-bold text-green-700">
@@ -411,13 +419,18 @@ export default function ViewProposals() {
                               <>
                                 <Button 
                                   onClick={() => acceptProposal.mutate(proposal.id)}
-                                  disabled={acceptProposal.isPending}
-                                  className="bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 px-6"
+                                  disabled={acceptProposal.isPending || hasAcceptedProposal}
+                                  className="bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 disabled:bg-gray-300 disabled:text-gray-500 px-6"
                                 >
                                   {acceptProposal.isPending ? (
                                     <>
                                       <Loader2 className="animate-spin w-4 h-4 mr-2" />
                                       Hiring...
+                                    </>
+                                  ) : hasAcceptedProposal ? (
+                                    <>
+                                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                                      Another Finder Hired
                                     </>
                                   ) : (
                                     <>
@@ -482,7 +495,7 @@ export default function ViewProposals() {
             <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl p-6 sm:p-8">
               <h3 className="text-lg font-semibold text-slate-900 mb-2">Need More Options?</h3>
               <p className="text-slate-600 mb-4">
-                Post additional finds or browse other clients' public requests
+                Post additional finds or browse other clients' requests
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Button 
