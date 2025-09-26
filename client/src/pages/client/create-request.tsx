@@ -13,7 +13,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import ClientHeader from "@/components/client-header";
-import FileUploader from "@/components/FileUploader";
+import { FileUploader } from "@/components/FileUploader";
 import { 
   ArrowLeft, 
   ArrowRight, 
