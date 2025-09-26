@@ -67,6 +67,7 @@ export default function AdminSettings() {
   // Fetch admin settings
   const { data: settings, isLoading: settingsLoading } = useQuery<AdminSettings>({
     queryKey: ['/api/admin/settings'],
+    queryFn: () => apiRequest('/api/admin/settings'),
     enabled: !!user && user.role === 'admin'
   });
 
@@ -128,10 +129,21 @@ export default function AdminSettings() {
       verificationRequired?: string;
       autoVerifyEnabled?: string;
     }) => {
-      return await apiRequest('/api/admin/settings', {
+      const response = await fetch('/api/admin/settings', {
         method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('findermeister_token') || localStorage.getItem('token')}`
+        },
         body: JSON.stringify(data)
       });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update settings');
+      }
+
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/settings'] });

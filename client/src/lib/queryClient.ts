@@ -20,52 +20,6 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-export async function apiRequest(
-  url: string,
-  options: {
-    method?: string;
-    headers?: Record<string, string>;
-    body?: string;
-  } = {}
-): Promise<any> {
-  const token = localStorage.getItem('findermeister_token');
-  const { method = 'GET', headers = {}, body } = options;
-
-  const res = await fetch(url, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers,
-    },
-    body,
-  });
-
-  await throwIfResNotOk(res);
-  return res.json();
-}
-
-type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
-  on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    const token = localStorage.getItem('findermeister_token');
-    const res = await fetch(queryKey.join("/") as string, {
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    });
-
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
-    }
-
-    await throwIfResNotOk(res);
-    return await res.json();
-  };
-
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -80,3 +34,94 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+function getAuthToken() {
+  return localStorage.getItem('findermeister_token') || localStorage.getItem('token');
+}
+
+export const apiRequest = async (url: string, options: RequestInit = {}): Promise<any> => {
+  const token = getAuthToken();
+
+  const defaultHeaders: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    defaultHeaders.Authorization = `Bearer ${token}`;
+  }
+
+  const config: RequestInit = {
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...options.headers,
+    },
+  };
+
+  const response = await fetch(url, config);
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('findermeister_token');
+      window.location.href = '/login';
+      throw new Error('Unauthorized');
+    }
+
+    const errorData = await response.json().catch(() => ({ message: 'Request failed' }));
+    throw new Error(errorData.message || `Request failed: ${response.status}`);
+  }
+
+  return response.json();
+};
+
+type UnauthorizedBehavior = "returnNull" | "throw";
+export const getQueryFn: <T>(options: {
+  on401: UnauthorizedBehavior;
+}) => QueryFunction<T> =
+  ({ on401: unauthorizedBehavior }) =>
+  async ({ queryKey }) => {
+    const token = getAuthToken();
+    const res = await fetch(queryKey.join("/") as string, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+      return null;
+    }
+
+    await throwIfResNotOk(res);
+    return await res.json();
+  };
+
+const defaultQueryFn = async ({ queryKey }: { queryKey: string[] }): Promise<any> => {
+  const url = queryKey[0];
+  const token = getAuthToken();
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const res = await fetch(url, {
+    headers
+  });
+
+  if (!res.ok) {
+    if (res.status === 401) {
+      // Clear token and redirect to login on 401
+      localStorage.removeItem('token');
+      localStorage.removeItem('findermeister_token');
+      window.location.href = '/login';
+      throw new Error('Unauthorized');
+    }
+    throw new Error(`Request failed: ${res.status}`);
+  }
+
+  return res.json();
+};
