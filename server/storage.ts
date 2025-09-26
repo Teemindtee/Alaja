@@ -97,7 +97,7 @@ import {
   type InsertUserVerification,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql, asc } from "drizzle-orm";
+import { eq, and, desc, asc, sql as drizzleSql, sql } from "drizzle-orm";
 import { generateId } from "@shared/utils";
 
 export interface IStorage {
@@ -355,6 +355,9 @@ export interface IStorage {
   createSupportTicketMessage(message: { ticketId: string; senderId?: string; senderType: string; senderName: string; senderEmail?: string; content: string; attachments?: string[]; isInternal?: boolean; }): Promise<SupportTicketMessage>;
   getSupportTicketMessages(ticketId: string): Promise<Array<SupportTicketMessage & { sender?: { firstName: string; lastName: string; } }>>;
   markTicketMessageAsRead(messageId: string): Promise<void>;
+
+  // New method for proposals
+  getProposalsForClient(clientId: string): Promise<Proposal[]>;
 }
 
 class DatabaseStorage implements IStorage {
@@ -859,7 +862,7 @@ class DatabaseStorage implements IStorage {
     try {
       // Check if a record exists
       const existing = await db.select().from(contactSettings).limit(1);
-      
+
       if (existing.length > 0) {
         // Update existing record
         const result = await db.update(contactSettings)
@@ -911,6 +914,11 @@ class DatabaseStorage implements IStorage {
   async createSupportTicketMessage(message: any): Promise<SupportTicketMessage> { throw new Error('Not implemented'); }
   async getSupportTicketMessages(ticketId: string): Promise<any[]> { return []; }
   async markTicketMessageAsRead(messageId: string): Promise<void> {}
+
+  // Implementation for getProposalsForClient
+  async getProposalsForClient(clientId: string): Promise<Proposal[]> {
+    return await db.select().from(proposals).where(eq(proposals.clientId, clientId));
+  }
 }
 
 export const storage = new DatabaseStorage();
