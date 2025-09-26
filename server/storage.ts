@@ -1660,7 +1660,8 @@ export class DatabaseStorage implements IStorage {
         clientPaymentChargePercentage: "2.5",
         finderEarningsChargePercentage: "5",
         highBudgetThreshold: "100000",
-        highBudgetTokenCost: "5"
+        highBudgetTokenCost: "5",
+        autoVerifyEnabled: "false"
       };
 
       Object.keys(defaults).forEach(key => {

@@ -57,7 +57,26 @@ async function requireAdmin(req: AuthenticatedRequest, res: Response, next: Next
     res.status(403).json({ message: 'Admin access required' });
   }
 }
-// --- End Middleware ---
+// Admin Settings endpoint
+  app.put("/api/admin/settings", authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const settings = req.body;
+      
+      // Update each setting
+      for (const [key, value] of Object.entries(settings)) {
+        if (typeof value === 'string') {
+          await storage.setAdminSetting(key, value);
+        }
+      }
+      
+      res.json({ message: "Settings updated successfully" });
+    } catch (error) {
+      console.error('Admin settings update error:', error);
+      res.status(500).json({ message: "Failed to update settings" });
+    }
+  });
+
+  // --- End Middleware ---
 
 // Configure multer for file uploads
 const storage_multer = multer.diskStorage({
@@ -114,13 +133,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email, password, firstName, lastName, role, phone } = req.body;
 
+      // Check auto-verification setting
+      const settings = await storage.getAdminSettings();
+      const autoVerifyEnabled = settings.autoVerifyEnabled === 'true';
+
       // Validate input
       const userData = insertUserSchema.parse({
         email,
         password: await bcrypt.hash(password, 10),
         firstName,
         lastName,
-        role
+        role,
+        isVerified: autoVerifyEnabled // Set verification based on admin setting
       });
 
       // Check if user already exists
@@ -137,6 +161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.createFinder({
           userId: user.id,
           phone: phone || null,
+          isVerified: autoVerifyEnabled // Also set finder verification
         });
       }
 
@@ -575,7 +600,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const client = await storage.getUser(req.user.userId);
       if (!client || !client.isVerified) {
         return res.status(403).json({
-          message: "Account verification required. You must verify your account before posting finds.",
+          message: "Account must be verified to post finds.",
           verified: false,
           verificationRequired: true
         });
@@ -808,7 +833,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const finderUser = await storage.getUser(req.user.userId);
       if (!finderUser || !finderUser.isVerified || !finder.isVerified) {
         return res.status(403).json({
-          message: "Account verification required. You must verify your account before submitting proposals.",
+          message: "Account must be verified and profile completed to submit proposals.",
           verified: false,
           verificationRequired: true
         });
@@ -818,7 +843,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const profileCompletion = await storage.calculateFinderProfileCompletion(finder.id);
       if (profileCompletion.completionPercentage < 100) {
         return res.status(403).json({
-          message: "Profile completion required. You must complete 100% of your profile before submitting proposals.",
+          message: "Account must be verified and profile completed to submit proposals.",
           profileComplete: false,
           completionPercentage: profileCompletion.completionPercentage,
           missingFields: profileCompletion.missingFields,

@@ -34,6 +34,7 @@ interface AdminSettings {
   highBudgetThreshold: string;
   highBudgetTokenCost: string;
   verificationRequired: string;
+  autoVerifyEnabled: string;
 }
 
 export default function AdminSettings() {
@@ -59,7 +60,8 @@ export default function AdminSettings() {
     finderEarningsChargePercentage: '',
     highBudgetThreshold: '',
     highBudgetTokenCost: '',
-    verificationRequired: 'false'
+    verificationRequired: 'false',
+    autoVerifyEnabled: 'false'
   });
 
   // Fetch admin settings
@@ -89,7 +91,8 @@ export default function AdminSettings() {
         finderEarningsChargePercentage: settings.finderEarningsChargePercentage || "5",
         highBudgetThreshold: settings.highBudgetThreshold || "100000",
         highBudgetTokenCost: settings.highBudgetTokenCost || "5",
-        verificationRequired: settings.verificationRequired || 'false' // Set initial value for verificationRequired in formData
+        verificationRequired: settings.verificationRequired || 'false',
+        autoVerifyEnabled: settings.autoVerifyEnabled || 'false'
       });
     }
   }, [settings]);
@@ -104,10 +107,11 @@ export default function AdminSettings() {
       const hasFinderChargeChange = finderEarningsChargePercentage !== (settings.finderEarningsChargePercentage || "5");
       const hasHighBudgetThresholdChange = highBudgetThreshold !== (settings.highBudgetThreshold || "100000");
       const hasHighBudgetTokenCostChange = highBudgetTokenCost !== (settings.highBudgetTokenCost || "5");
-      // Track changes for verificationRequired
+      // Track changes for verificationRequired and autoVerifyEnabled
       const hasVerificationChange = verificationRequired !== (settings.verificationRequired || 'false');
+      const hasAutoVerifyChange = formData.autoVerifyEnabled !== (settings.autoVerifyEnabled || 'false');
 
-      setHasChanges(hasTokenCostChange || hasPriceChange || hasPlatformFeeChange || hasClientChargeChange || hasFinderChargeChange || hasHighBudgetThresholdChange || hasHighBudgetTokenCostChange || hasVerificationChange);
+      setHasChanges(hasTokenCostChange || hasPriceChange || hasPlatformFeeChange || hasClientChargeChange || hasFinderChargeChange || hasHighBudgetThresholdChange || hasHighBudgetTokenCostChange || hasVerificationChange || hasAutoVerifyChange);
     }
   }, [proposalTokenCost, findertokenPrice, platformFeePercentage, clientPaymentChargePercentage, finderEarningsChargePercentage, highBudgetThreshold, highBudgetTokenCost, verificationRequired, settings]);
 
@@ -121,7 +125,8 @@ export default function AdminSettings() {
       finderEarningsChargePercentage?: string;
       highBudgetThreshold?: string;
       highBudgetTokenCost?: string;
-      verificationRequired?: string; // Add verificationRequired to mutation
+      verificationRequired?: string;
+      autoVerifyEnabled?: string;
     }) => {
       return await apiRequest('/api/admin/settings', {
         method: 'PUT',
@@ -155,7 +160,8 @@ export default function AdminSettings() {
       finderEarningsChargePercentage,
       highBudgetThreshold,
       highBudgetTokenCost,
-      verificationRequired // Include verificationRequired in the update
+      verificationRequired,
+      autoVerifyEnabled: formData.autoVerifyEnabled
     });
   };
 
@@ -323,10 +329,42 @@ export default function AdminSettings() {
               {/* Verification Settings */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Identity Verification Settings</CardTitle>
+                  <CardTitle>Account Verification Settings</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-6">
                   <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="autoVerifyEnabled">Auto-Verify New Accounts</Label>
+                      <p className="text-sm text-gray-600">When enabled, new user accounts are automatically verified upon registration</p>
+                    </div>
+                    <Switch
+                      id="autoVerifyEnabled"
+                      checked={formData.autoVerifyEnabled === 'true'}
+                      onCheckedChange={(checked) => {
+                        const newValue = checked ? 'true' : 'false';
+                        setFormData(prev => ({ ...prev, autoVerifyEnabled: newValue }));
+                        setHasChanges(true);
+                      }}
+                    />
+                  </div>
+                  {formData.autoVerifyEnabled === 'true' && (
+                    <Alert>
+                      <CheckCircle2 className="h-4 w-4" />
+                      <AlertDescription>
+                        Auto-verification is enabled. New clients and finders will be automatically verified and can immediately post finds or submit proposals.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  {formData.autoVerifyEnabled === 'false' && (
+                    <Alert>
+                      <Shield className="h-4 w-4" />
+                      <AlertDescription>
+                        Manual verification is required. New accounts will remain unverified until an admin manually verifies them. Unverified clients cannot post finds and unverified finders cannot submit proposals.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  <div className="flex items-center justify-between pt-4 border-t">
                     <div>
                       <Label htmlFor="verificationRequired">Require Identity Verification</Label>
                       <p className="text-sm text-gray-600">When enabled, users must verify their identity before posting finds or applying to finds</p>
