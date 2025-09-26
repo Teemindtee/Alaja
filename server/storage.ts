@@ -845,8 +845,46 @@ class DatabaseStorage implements IStorage {
   async generateWithdrawalRequestId(): Promise<string> { return 'WR-2025-001'; }
 
   // Contact settings
-  async getContactSettings(): Promise<any> { return {}; }
-  async updateContactSettings(settings: any): Promise<any> { return settings; }
+  async getContactSettings(): Promise<any> {
+    try {
+      const result = await db.select().from(contactSettings).limit(1);
+      return result[0] || null;
+    } catch (error) {
+      console.error('Error fetching contact settings:', error);
+      return null;
+    }
+  }
+
+  async updateContactSettings(settings: any): Promise<any> {
+    try {
+      // Check if a record exists
+      const existing = await db.select().from(contactSettings).limit(1);
+      
+      if (existing.length > 0) {
+        // Update existing record
+        const result = await db.update(contactSettings)
+          .set({
+            ...settings,
+            updatedAt: new Date()
+          })
+          .where(eq(contactSettings.id, existing[0].id))
+          .returning();
+        return result[0];
+      } else {
+        // Create new record
+        const result = await db.insert(contactSettings)
+          .values({
+            ...settings,
+            updatedAt: new Date()
+          })
+          .returning();
+        return result[0];
+      }
+    } catch (error) {
+      console.error('Error updating contact settings:', error);
+      throw error;
+    }
+  }
 
   // FAQ operations
   async getFAQCategories(): Promise<any[]> { return []; }
