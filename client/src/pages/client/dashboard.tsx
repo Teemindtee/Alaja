@@ -19,7 +19,12 @@ export default function ClientDashboard() {
   const formatCurrency = (amount: string | number | null) => {
     if (amount === null || amount === undefined) return '₦0';
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-    return `₦${Math.round(numAmount / 100)}`;
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(numAmount / 100);
   };
 
   // Format date
