@@ -743,14 +743,123 @@ class DatabaseStorage implements IStorage {
   // (Due to length constraints, I'm providing a basic structure)
   // The remaining methods should follow similar patterns
 
-  async getConversation(clientId: string, proposalId: string): Promise<Conversation | undefined> { return undefined; }
-  async getConversationById(conversationId: string): Promise<Conversation | undefined> { return undefined; }
-  async createConversation(conversation: InsertConversation): Promise<Conversation> { throw new Error('Not implemented'); }
-  async getConversationsByClientId(clientId: string): Promise<any[]> { return []; }
-  async getConversationsByFinderId(finderId: string): Promise<any[]> { return []; }
-  async getMessages(conversationId: string): Promise<any[]> { return []; }
-  async createMessage(message: InsertMessage): Promise<Message> { throw new Error('Not implemented'); }
-  async markMessagesAsRead(conversationId: string, userId: string): Promise<void> {}
+  async getConversation(clientId: string, proposalId: string): Promise<Conversation | undefined> {
+    const result = await db.select().from(conversations)
+      .where(and(eq(conversations.clientId, clientId), eq(conversations.proposalId, proposalId)))
+      .limit(1);
+    return result[0];
+  }
+
+  async getConversationById(conversationId: string): Promise<Conversation | undefined> {
+    const result = await db.select().from(conversations)
+      .where(eq(conversations.id, conversationId))
+      .limit(1);
+    return result[0];
+  }
+
+  async getConversationByProposal(proposalId: string): Promise<Conversation | undefined> {
+    const result = await db.select().from(conversations)
+      .where(eq(conversations.proposalId, proposalId))
+      .limit(1);
+    return result[0];
+  }
+
+  async createConversation(conversation: InsertConversation): Promise<Conversation> {
+    const result = await db.insert(conversations).values(conversation).returning();
+    return result[0];
+  }
+
+  async getConversationsByClientId(clientId: string): Promise<any[]> {
+    return await db.select({
+      id: conversations.id,
+      clientId: conversations.clientId,
+      finderId: conversations.finderId,
+      proposalId: conversations.proposalId,
+      lastMessageAt: conversations.lastMessageAt,
+      createdAt: conversations.createdAt,
+      proposal: {
+        request: {
+          title: finds.title
+        }
+      },
+      finder: {
+        user: {
+          firstName: users.firstName,
+          lastName: users.lastName
+        }
+      }
+    })
+    .from(conversations)
+    .innerJoin(proposals, eq(conversations.proposalId, proposals.id))
+    .innerJoin(finds, eq(proposals.findId, finds.id))
+    .innerJoin(finders, eq(conversations.finderId, finders.id))
+    .innerJoin(users, eq(finders.userId, users.id))
+    .where(eq(conversations.clientId, clientId))
+    .orderBy(desc(conversations.lastMessageAt));
+  }
+
+  async getConversationsByFinderId(finderId: string): Promise<any[]> {
+    return await db.select({
+      id: conversations.id,
+      clientId: conversations.clientId,
+      finderId: conversations.finderId,
+      proposalId: conversations.proposalId,
+      lastMessageAt: conversations.lastMessageAt,
+      createdAt: conversations.createdAt,
+      proposal: {
+        request: {
+          title: finds.title
+        }
+      },
+      client: {
+        firstName: users.firstName,
+        lastName: users.lastName
+      }
+    })
+    .from(conversations)
+    .innerJoin(proposals, eq(conversations.proposalId, proposals.id))
+    .innerJoin(finds, eq(proposals.findId, finds.id))
+    .innerJoin(users, eq(conversations.clientId, users.id))
+    .where(eq(conversations.finderId, finderId))
+    .orderBy(desc(conversations.lastMessageAt));
+  }
+
+  async getMessages(conversationId: string): Promise<any[]> {
+    return await db.select({
+      id: messages.id,
+      conversationId: messages.conversationId,
+      senderId: messages.senderId,
+      content: messages.content,
+      attachmentPaths: messages.attachmentPaths,
+      attachmentNames: messages.attachmentNames,
+      quotedMessageId: messages.quotedMessageId,
+      createdAt: messages.createdAt,
+      sender: {
+        firstName: users.firstName,
+        lastName: users.lastName
+      }
+    })
+    .from(messages)
+    .innerJoin(users, eq(messages.senderId, users.id))
+    .where(eq(messages.conversationId, conversationId))
+    .orderBy(messages.createdAt);
+  }
+
+  async createMessage(message: InsertMessage): Promise<Message> {
+    const result = await db.insert(messages).values(message).returning();
+    
+    // Update last message timestamp
+    await db.update(conversations)
+      .set({ lastMessageAt: new Date() })
+      .where(eq(conversations.id, message.conversationId));
+    
+    return result[0];
+  }
+
+  async markMessagesAsRead(conversationId: string, userId: string): Promise<void> {
+    // Implementation for marking messages as read would depend on your read status tracking
+    // For now, this is a placeholder
+  }
   async getFinderProfile(finderId: string): Promise<any> { return null; }
 
   // Blog operations
