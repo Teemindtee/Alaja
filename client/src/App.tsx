@@ -136,6 +136,7 @@ function Router() {
       <Route path="/client/proposals/:id" component={() => <ClientRoute><ProposalDetail /></ClientRoute>} />
       <Route path="/client/contracts" component={() => <ClientRoute><ClientContracts /></ClientRoute>} />
       <Route path="/client/contracts/:contractId" component={() => <ClientRoute><ContractDetails /></ClientRoute>} />
+      <Route path="/client/fund-contract/:contractId" component={() => <ClientRoute><ContractDetails /></ClientRoute>} />
       <Route path="/client/browse-finds" component={() => <ClientRoute><ClientBrowseRequests /></ClientRoute>} />
       <Route path="/client/browse-requests" component={() => <ClientRoute><ClientBrowseRequests /></ClientRoute>} />
       <Route path="/client/finds" component={() => <ClientRoute><ClientBrowseRequests /></ClientRoute>} />

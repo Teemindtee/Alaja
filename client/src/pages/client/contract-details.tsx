@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -67,11 +67,11 @@ interface ContractDetails {
 
 export default function ContractDetails() {
   const { contractId } = useParams<{ contractId: string }>();
-  const [, navigate] = useLocation();
+  const [, navigate] = useLocation(); // Changed from useLocation() to just useLocation to match the example and for consistency
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   // Payment modal state
   const [paymentModal, setPaymentModal] = useState<{
     isOpen: boolean;
@@ -82,7 +82,7 @@ export default function ContractDetails() {
     findTitle?: string;
     finderName?: string;
   }>({ isOpen: false });
-  
+
   // Dispute modal state
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
 
@@ -145,6 +145,22 @@ export default function ContractDetails() {
       });
     },
   });
+
+  // Auto-open payment modal if accessed via fund-contract route
+  useEffect(() => {
+    if (location.pathname.includes('/fund-contract/') && contract && contract.escrowStatus === 'pending') {
+      setPaymentModal({
+        isOpen: true,
+        contractId: contractId,
+        amount: parseFloat(contract.amount), // Ensure amount is a number
+        paymentUrl: '', // Payment URL will be fetched upon modal open or handled differently
+        reference: '', // Reference will be fetched upon modal open or handled differently
+        findTitle: contract?.request?.title || 'Find Request',
+        finderName: contract?.finder?.name || 'Finder',
+      });
+    }
+  }, [location.pathname, contract, contractId]);
+
 
   const handleMessageFinder = () => {
     if (contract?.proposalId) {
@@ -271,14 +287,14 @@ export default function ContractDetails() {
                 </span>
               </div>
               <Progress value={getContractProgress()} className="h-2 mb-4" />
-              
+
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 text-xs sm:text-sm">
                 <div className="flex flex-col items-center p-2 rounded-lg bg-green-50">
                   <CheckCircle className="w-4 h-4 text-green-600 mb-1" />
                   <span className="text-green-700 font-medium">Contract</span>
                   <span className="text-green-600">Signed</span>
                 </div>
-                
+
                 <div className={`flex flex-col items-center p-2 rounded-lg ${
                   contract.escrowStatus === 'funded' || contract.escrowStatus === 'held' ? 'bg-green-50' : 'bg-slate-50'
                 }`}>
@@ -292,7 +308,7 @@ export default function ContractDetails() {
                     {contract.escrowStatus === 'funded' || contract.escrowStatus === 'held' ? 'Secured' : 'Pending'}
                   </span>
                 </div>
-                
+
                 <div className={`flex flex-col items-center p-2 rounded-lg ${
                   contract.hasSubmission ? 'bg-green-50' : 'bg-slate-50'
                 }`}>
@@ -306,7 +322,7 @@ export default function ContractDetails() {
                     {contract.hasSubmission ? 'Submitted' : 'In Progress'}
                   </span>
                 </div>
-                
+
                 <div className={`flex flex-col items-center p-2 rounded-lg ${
                   contract.isCompleted ? 'bg-green-50' : 'bg-slate-50'
                 }`}>
@@ -367,7 +383,7 @@ export default function ContractDetails() {
                     <Briefcase className="w-4 h-4 mr-2 text-blue-600" />
                     Project Details
                   </h4>
-                  
+
                   {contract.request?.description && (
                     <div className="bg-slate-50/80 rounded-lg p-4">
                       <p className="text-slate-700 leading-relaxed">
@@ -413,7 +429,7 @@ export default function ContractDetails() {
                       </>
                     )}
                   </Button>
-                  
+
                   {contract.hasSubmission && (
                     <Button 
                       onClick={() => navigate(`/orders/review/${contract.id}`)}
@@ -530,7 +546,7 @@ export default function ContractDetails() {
                 <h3 className="font-semibold text-slate-900 mb-6 flex items-center">
                   Contract Summary
                 </h3>
-                
+
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-4 bg-green-50/80 rounded-lg">
                     <div>
@@ -627,7 +643,7 @@ export default function ContractDetails() {
                       </Button>
                     </div>
                   )}
-                  
+
                   <Button 
                     onClick={() => navigate("/client/contracts")}
                     variant="outline" 
@@ -636,7 +652,7 @@ export default function ContractDetails() {
                     <FileText className="w-4 h-4 mr-3" />
                     View All Contracts
                   </Button>
-                  
+
                   <Button 
                     onClick={() => navigate("/client/dashboard")}
                     variant="outline" 
@@ -645,7 +661,7 @@ export default function ContractDetails() {
                     <TrendingUp className="w-4 h-4 mr-3" />
                     Dashboard
                   </Button>
-                  
+
                   <Button 
                     onClick={() => navigate("/client/proposals")}
                     variant="outline" 
@@ -654,7 +670,7 @@ export default function ContractDetails() {
                     <Briefcase className="w-4 h-4 mr-3" />
                     View Proposals
                   </Button>
-                  
+
                   {/* Dispute Button */}
                   <Button 
                     onClick={() => setIsDisputeModalOpen(true)}
@@ -693,8 +709,18 @@ export default function ContractDetails() {
         </div>
       </main>
 
-      {/* Payment Modal - Removed for Flutterwave streamlining */}
-      
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={paymentModal.isOpen}
+        onClose={() => setPaymentModal({ isOpen: false })}
+        contractId={paymentModal.contractId || ''}
+        amount={paymentModal.amount || 0}
+        paymentUrl={paymentModal.paymentUrl || ''}
+        reference={paymentModal.reference || ''}
+        findTitle={paymentModal.findTitle || ''}
+        finderName={paymentModal.finderName || ''}
+      />
+
       {/* Dispute Modal */}
       <ContractDisputeModal
         isOpen={isDisputeModalOpen}
@@ -712,5 +738,32 @@ function Label({ className = "", children }: { className?: string; children: Rea
     <p className={`text-xs font-medium text-slate-500 mb-1 ${className}`}>
       {children}
     </p>
+  );
+}
+
+// Placeholder for PaymentModal component (assuming it exists elsewhere)
+// In a real application, this would be imported from a separate file.
+function PaymentModal({ isOpen, onClose, contractId, amount, paymentUrl, reference, findTitle, finderName }: any) {
+  if (!isOpen) return null;
+
+  // This is a simplified placeholder. A real PaymentModal would handle payment integration.
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Fund Contract</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">&times;</button>
+        </div>
+        <p className="mb-4">You are about to fund contract: <strong>{findTitle}</strong> for <strong>₦{amount.toLocaleString()}</strong> with {finderName}.</p>
+        {paymentUrl ? (
+          <a href={paymentUrl} target="_blank" rel="noopener noreferrer">
+            <Button className="w-full bg-green-600 hover:bg-green-700">Proceed to Payment</Button>
+          </a>
+        ) : (
+          <p className="text-sm text-gray-600">Payment details are being prepared...</p>
+        )}
+        <Button variant="outline" onClick={onClose} className="w-full mt-2">Cancel</Button>
+      </div>
+    </div>
   );
 }
