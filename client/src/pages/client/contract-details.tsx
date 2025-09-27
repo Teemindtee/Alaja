@@ -119,15 +119,33 @@ export default function ContractDetails() {
     },
     onSuccess: (data) => {
       if (data.authorization_url) {
-        setPaymentModal({
-          isOpen: true,
-          contractId: contractId,
-          amount: data.amount,
-          paymentUrl: data.authorization_url,
-          reference: data.reference,
-          findTitle: contract?.request?.title || 'Find Request',
-          finderName: contract?.finder?.name || 'Finder',
-        });
+        // Open Flutterwave payment page directly
+        const paymentWindow = window.open(data.authorization_url, '_blank', 'width=600,height=600');
+        
+        if (paymentWindow) {
+          // Poll for window closure and verify payment
+          const checkClosed = setInterval(() => {
+            if (paymentWindow.closed) {
+              clearInterval(checkClosed);
+              
+              // Verify payment after window closes
+              setTimeout(() => {
+                verifyPaymentMutation.mutate(data.reference);
+              }, 2000);
+            }
+          }, 1000);
+        } else {
+          // Fallback: show modal with payment URL
+          setPaymentModal({
+            isOpen: true,
+            contractId: contractId,
+            amount: data.amount,
+            paymentUrl: data.authorization_url,
+            reference: data.reference,
+            findTitle: contract?.request?.title || 'Find Request',
+            finderName: contract?.finder?.name || 'Finder',
+          });
+        }
       } else {
         toast({
           variant: "destructive",
@@ -142,6 +160,37 @@ export default function ContractDetails() {
         variant: "destructive",
         title: "Payment Error",
         description: error.message || "Unable to initialize payment. Please try again or contact support.",
+      });
+    },
+  });
+
+  // Payment verification mutation
+  const verifyPaymentMutation = useMutation({
+    mutationFn: async (reference: string) => {
+      return apiRequest(`/api/contracts/${contractId}/payment/verify/${reference}`);
+    },
+    onSuccess: (data) => {
+      if (data.status === 'success') {
+        toast({
+          title: "Payment Successful!",
+          description: "Your contract has been funded and work can now begin.",
+        });
+        // Refresh contract data
+        queryClient.invalidateQueries({ queryKey: ["/api/client/contracts", contractId] });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Payment Failed",
+          description: "Payment was not successful. Please try again.",
+        });
+      }
+    },
+    onError: (error: any) => {
+      console.error('Payment verification error:', error);
+      toast({
+        variant: "destructive",
+        title: "Payment Verification Failed",
+        description: "Unable to verify payment. Please contact support if money was deducted.",
       });
     },
   });

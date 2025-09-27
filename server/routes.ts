@@ -1817,10 +1817,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
-      // Payment services have been removed
-      return res.status(503).json({
-        message: "Payment services are currently unavailable. Please contact support.",
-        error: "Payment services removed"
+      // Initialize payment with Flutterwave
+      const flutterwaveService = new FlutterwaveService();
+      
+      if (!flutterwaveService.isConfigured()) {
+        return res.status(503).json({
+          message: "Payment service is not configured. Please contact support.",
+          error: "Flutterwave not configured"
+        });
+      }
+
+      // Generate payment reference
+      const reference = flutterwaveService.generateTransactionReference(user.id);
+      
+      // Get contract amount (convert from string to number)
+      const contractAmount = parseFloat(contract.amount);
+      
+      // Get find details for better payment description
+      const proposal = await storage.getProposal(contract.proposalId);
+      const find = proposal ? await storage.getFind(proposal.findId) : null;
+      
+      // Initialize Flutterwave payment
+      const paymentData = await flutterwaveService.initializeTransaction(
+        user.email,
+        contractAmount,
+        reference,
+        {
+          userId: user.id,
+          contractId: contractId,
+          type: 'contract_payment',
+          description: find ? `Contract payment for: ${find.title}` : 'Contract payment'
+        },
+        `${req.protocol}://${req.get('host')}/client/contracts/${contractId}?payment=success&reference=${reference}`
+      );
+
+      res.json({
+        authorization_url: paymentData.authorization_url,
+        reference: reference,
+        amount: contractAmount
       });
 
     } catch (error) {
@@ -2189,6 +2223,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Flutterwave payment verification error:', error);
       res.status(500).json({ message: "Failed to verify Flutterwave payment" });
+    }
+  });
+
+  // Contract payment verification endpoint
+  app.get("/api/contracts/:contractId/payment/verify/:reference", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { contractId, reference } = req.params;
+
+      // Get contract details
+      const contract = await storage.getContract(contractId);
+      if (!contract) {
+        return res.status(404).json({ message: "Contract not found" });
+      }
+
+      // Verify user is the client for this contract
+      if (contract.clientId !== req.user.userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Verify payment with Flutterwave
+      const flutterwaveService = new FlutterwaveService();
+      const verification = await flutterwaveService.verifyTransaction(reference);
+
+      if (verification.status === 'success') {
+        // Check if this payment was already processed
+        const existingTransaction = await storage.getTransactionByReference(reference);
+        
+        if (!existingTransaction) {
+          // Update contract status to funded
+          await storage.updateContract(contractId, {
+            escrowStatus: 'funded'
+          });
+
+          // Create transaction record
+          await storage.createTransaction({
+            userId: req.user.userId,
+            type: 'contract_payment',
+            amount: parseFloat(verification.amount),
+            description: `Contract payment for contract ${contractId}`,
+            reference: reference
+          });
+
+          console.log(`Contract ${contractId} payment verified and funded`);
+        }
+
+        res.json({
+          status: 'success',
+          message: 'Payment verified and contract funded',
+          contract: await storage.getContract(contractId)
+        });
+      } else {
+        res.json({
+          status: 'failed',
+          message: 'Payment verification failed'
+        });
+      }
+    } catch (error) {
+      console.error('Contract payment verification error:', error);
+      res.status(500).json({ message: "Failed to verify payment" });
     }
   });
 
