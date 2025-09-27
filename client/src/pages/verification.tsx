@@ -66,22 +66,42 @@ export default function Verification() {
 
   const submitVerification = useMutation({
     mutationFn: async (formData: FormData) => {
-      return apiRequest('/api/verification/submit', {
+      const response = await fetch('/api/verification/submit', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
         body: formData
       });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to submit verification');
+      }
+
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/verification/status'] });
-      toast({ title: "Verification submitted successfully", description: "Your documents are now under review." });
+      toast({ 
+        title: "Verification submitted successfully", 
+        description: "Your documents are now under review." 
+      });
       // Reset form
       setSelectedDocumentType("");
       setDocumentFront(null);
       setDocumentBack(null);
       setSelfie(null);
+      setIsSubmitting(false);
     },
     onError: (error: any) => {
-      toast({ title: "Error submitting verification", description: error.message, variant: "destructive" });
+      console.error('Verification submission error:', error);
+      toast({ 
+        title: "Error submitting verification", 
+        description: error.message || "Please try again", 
+        variant: "destructive" 
+      });
+      setIsSubmitting(false);
     }
   });
 
@@ -91,9 +111,15 @@ export default function Verification() {
     else if (type === 'selfie') setSelfie(file);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
     if (!selectedDocumentType || !documentFront || !selfie) {
-      toast({ title: "Missing required fields", description: "Please select document type, upload document front, and take a selfie.", variant: "destructive" });
+      toast({ 
+        title: "Missing required fields", 
+        description: "Please select document type, upload document front, and take a selfie.", 
+        variant: "destructive" 
+      });
       return;
     }
 
@@ -106,8 +132,8 @@ export default function Verification() {
 
     try {
       await submitVerification.mutateAsync(formData);
-    } finally {
-      setIsSubmitting(false);
+    } catch (error) {
+      // Error handling is done in the mutation onError callback
     }
   };
 
@@ -248,123 +274,152 @@ export default function Verification() {
               <CardTitle>Submit Verification Documents</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Document Type Selection */}
-              <div className="space-y-2">
-                <Label htmlFor="documentType">Select Document Type</Label>
-                <Select value={selectedDocumentType} onValueChange={setSelectedDocumentType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose your ID document type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {documentTypes.map(doc => (
-                      <SelectItem key={doc.value} value={doc.value}>{doc.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Document Front Upload */}
-              <div className="space-y-2">
-                <Label>Document Front Image</Label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                  <input
-                    ref={documentFrontRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => e.target.files?.[0] && handleFileSelect('documentFront', e.target.files[0])}
-                  />
-                  {documentFront ? (
-                    <div className="space-y-2">
-                      <FileImage className="w-8 h-8 text-green-600 mx-auto" />
-                      <p className="text-sm text-green-600 font-medium">{documentFront.name}</p>
-                      <Button variant="outline" size="sm" onClick={() => documentFrontRef.current?.click()}>
-                        Change File
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <Upload className="w-8 h-8 text-gray-400 mx-auto" />
-                      <p className="text-sm text-gray-600">Upload front side of your ID document</p>
-                      <Button variant="outline" onClick={() => documentFrontRef.current?.click()}>
-                        Select File
-                      </Button>
-                    </div>
-                  )}
+              <form onSubmit={handleSubmit}>
+                {/* Document Type Selection */}
+                <div className="space-y-2">
+                  <Label htmlFor="documentType">Select Document Type</Label>
+                  <Select value={selectedDocumentType} onValueChange={setSelectedDocumentType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose your ID document type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {documentTypes.map(doc => (
+                        <SelectItem key={doc.value} value={doc.value}>{doc.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </div>
 
-              {/* Document Back Upload */}
-              <div className="space-y-2">
-                <Label>Document Back Image (Optional)</Label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                  <input
-                    ref={documentBackRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => e.target.files?.[0] && handleFileSelect('documentBack', e.target.files[0])}
-                  />
-                  {documentBack ? (
-                    <div className="space-y-2">
-                      <FileImage className="w-8 h-8 text-green-600 mx-auto" />
-                      <p className="text-sm text-green-600 font-medium">{documentBack.name}</p>
-                      <Button variant="outline" size="sm" onClick={() => documentBackRef.current?.click()}>
-                        Change File
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <Upload className="w-8 h-8 text-gray-400 mx-auto" />
-                      <p className="text-sm text-gray-600">Upload back side of your ID document (if applicable)</p>
-                      <Button variant="outline" onClick={() => documentBackRef.current?.click()}>
-                        Select File
-                      </Button>
-                    </div>
-                  )}
+                {/* Document Front Upload */}
+                <div className="space-y-2">
+                  <Label>Document Front Image</Label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <input
+                      ref={documentFrontRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => e.target.files?.[0] && handleFileSelect('documentFront', e.target.files[0])}
+                    />
+                    {documentFront ? (
+                      <div className="space-y-2">
+                        <FileImage className="w-8 h-8 text-green-600 mx-auto" />
+                        <p className="text-sm text-green-600 font-medium">{documentFront.name}</p>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => documentFrontRef.current?.click()}
+                        >
+                          Change File
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Upload className="w-8 h-8 text-gray-400 mx-auto" />
+                        <p className="text-sm text-gray-600">Upload front side of your ID document</p>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => documentFrontRef.current?.click()}
+                        >
+                          Select File
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {/* Selfie Upload */}
-              <div className="space-y-2">
-                <Label>Selfie Photo</Label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                  <input
-                    ref={selfieRef}
-                    type="file"
-                    accept="image/*"
-                    capture="user"
-                    className="hidden"
-                    onChange={(e) => e.target.files?.[0] && handleFileSelect('selfie', e.target.files[0])}
-                  />
-                  {selfie ? (
-                    <div className="space-y-2">
-                      <Camera className="w-8 h-8 text-green-600 mx-auto" />
-                      <p className="text-sm text-green-600 font-medium">{selfie.name}</p>
-                      <Button variant="outline" size="sm" onClick={() => selfieRef.current?.click()}>
-                        Retake Photo
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <Camera className="w-8 h-8 text-gray-400 mx-auto" />
-                      <p className="text-sm text-gray-600">Take a clear selfie photo</p>
-                      <Button variant="outline" onClick={() => selfieRef.current?.click()}>
-                        Take Selfie
-                      </Button>
-                    </div>
-                  )}
+                {/* Document Back Upload */}
+                <div className="space-y-2">
+                  <Label>Document Back Image (Optional)</Label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <input
+                      ref={documentBackRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => e.target.files?.[0] && handleFileSelect('documentBack', e.target.files[0])}
+                    />
+                    {documentBack ? (
+                      <div className="space-y-2">
+                        <FileImage className="w-8 h-8 text-green-600 mx-auto" />
+                        <p className="text-sm text-green-600 font-medium">{documentBack.name}</p>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => documentBackRef.current?.click()}
+                        >
+                          Change File
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Upload className="w-8 h-8 text-gray-400 mx-auto" />
+                        <p className="text-sm text-gray-600">Upload back side of your ID document (if applicable)</p>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => documentBackRef.current?.click()}
+                        >
+                          Select File
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {/* Submit Button */}
-              <Button 
-                onClick={handleSubmit} 
-                className="w-full" 
-                disabled={isSubmitting || !selectedDocumentType || !documentFront || !selfie}
-              >
-                {isSubmitting ? "Submitting..." : "Submit for Verification"}
-              </Button>
+                {/* Selfie Upload */}
+                <div className="space-y-2">
+                  <Label>Selfie Photo</Label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <input
+                      ref={selfieRef}
+                      type="file"
+                      accept="image/*"
+                      capture="user"
+                      className="hidden"
+                      onChange={(e) => e.target.files?.[0] && handleFileSelect('selfie', e.target.files[0])}
+                    />
+                    {selfie ? (
+                      <div className="space-y-2">
+                        <Camera className="w-8 h-8 text-green-600 mx-auto" />
+                        <p className="text-sm text-green-600 font-medium">{selfie.name}</p>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => selfieRef.current?.click()}
+                        >
+                          Retake Photo
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Camera className="w-8 h-8 text-gray-400 mx-auto" />
+                        <p className="text-sm text-gray-600">Take a clear selfie photo</p>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => selfieRef.current?.click()}
+                        >
+                          Take Selfie
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Submit Button */}
+                <Button 
+                  type="submit"
+                  className="w-full" 
+                  disabled={isSubmitting || !selectedDocumentType || !documentFront || !selfie}
+                >
+                  {isSubmitting ? "Submitting..." : "Submit for Verification"}
+                </Button>
+              </form>
 
               {/* Guidelines */}
               <Alert>
