@@ -15,11 +15,7 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 39085
-externalPort = 3001
-
-[[ports]]
-localPort = 42419
+localPort = 33095
 externalPort = 3000
 
 [env]
@@ -27,7 +23,7 @@ PORT = "5000"
 DATABASE_URL = "postgresql://username:password@localhost:5432/findermeister"
 
 [workflows]
-runButton = "Start Dev Server"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Project"
@@ -41,6 +37,9 @@ args = "Start application"
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
