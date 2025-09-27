@@ -898,7 +898,31 @@ class DatabaseStorage implements IStorage {
   // Verification operations
   async submitVerification(verification: any): Promise<any> { return verification; }
   async getVerificationByUserId(userId: string): Promise<any> { return null; }
-  async getPendingVerifications(): Promise<any[]> { return []; }
+  async getPendingVerifications(): Promise<any[]> {
+    return await db.select({
+      id: userVerifications.id,
+      userId: userVerifications.userId,
+      documentType: userVerifications.documentType,
+      documentFrontImage: userVerifications.documentFrontImage,
+      documentBackImage: userVerifications.documentBackImage,
+      selfieImage: userVerifications.selfieImage,
+      status: userVerifications.status,
+      submittedAt: userVerifications.submittedAt,
+      reviewedAt: userVerifications.reviewedAt,
+      rejectionReason: userVerifications.rejectionReason,
+      user: {
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        role: users.role
+      }
+    })
+    .from(userVerifications)
+    .innerJoin(users, eq(userVerifications.userId, users.id))
+    .where(eq(userVerifications.status, 'pending'))
+    .orderBy(desc(userVerifications.submittedAt));
+  }
   async updateVerificationStatus(id: string, status: string, reviewedBy: string, rejectionReason?: string): Promise<any> { return {}; }
   async getVerificationById(id: string): Promise<any> { return null; }
   async isVerificationRequired(): Promise<boolean> { return false; }
