@@ -66,13 +66,20 @@ export class AuthService {
   }
 
   static async getCurrentUser(): Promise<{ user: User; profile?: any }> {
+    const token = this.getToken();
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
     const response = await fetch('/api/auth/me', {
       headers: this.getAuthHeaders(),
       credentials: 'include',
     });
     
     if (!response.ok) {
-      throw new Error('Failed to get current user');
+      const error = new Error('Failed to get current user');
+      (error as any).status = response.status;
+      throw error;
     }
     
     return response.json();

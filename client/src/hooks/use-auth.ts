@@ -107,7 +107,7 @@ const AuthService = {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // Added state for isAuthenticated
+  const [isAuthenticated, setIsAuthenticated] = useState(AuthService.isAuthenticated()); // Initialize with token check
   const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
@@ -115,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryFn: () => AuthService.getCurrentUser(),
     enabled: AuthService.isAuthenticated(),
     retry: false,
+    staleTime: 0, // Always refetch to ensure fresh data
   });
 
   useEffect(() => {
@@ -123,15 +124,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('Setting user from auth data:', data.user);
       setUser(data.user);
       setProfile(data.profile);
-      setIsAuthenticated(true); // Set isAuthenticated to true when user data is available
+      setIsAuthenticated(true);
     } else if (error) {
       console.error('Auth error, clearing token:', error);
       AuthService.clearToken();
       setUser(null);
       setProfile(null);
-      setIsAuthenticated(false); // Set isAuthenticated to false on error
+      setIsAuthenticated(false);
+    } else if (!isLoading && !AuthService.isAuthenticated()) {
+      // Clear state if no token exists
+      setUser(null);
+      setProfile(null);
+      setIsAuthenticated(false);
     }
-  }, [data, error]);
+  }, [data, error, isLoading]);
 
   const login = async (email: string, password: string) => {
     try {
@@ -150,8 +156,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const data = await response.json();
 
-      // Store token in localStorage
-      localStorage.setItem('token', data.token);
+      // Store token in localStorage using the correct key
+      AuthService.setToken(data.token);
 
       // Set user state
       setUser(data.user);

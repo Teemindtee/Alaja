@@ -21,7 +21,7 @@ async function throwIfResNotOk(res: Response) {
 }
 
 function getAuthToken() {
-  return localStorage.getItem('findermeister_token') || localStorage.getItem('token');
+  return localStorage.getItem('findermeister_token');
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -84,7 +84,6 @@ export const apiRequest = async (url: string, options: RequestInit = {}): Promis
 
   if (!response.ok) {
     if (response.status === 401) {
-      localStorage.removeItem('token');
       localStorage.removeItem('findermeister_token');
       window.location.href = '/login';
       throw new Error('Unauthorized');

@@ -14,7 +14,10 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
 
   useEffect(() => {
     if (!isLoading && !hasRedirected) {
-      if (!isAuthenticated || !user) {
+      // Check if we have a token first
+      const hasToken = !!localStorage.getItem('findermeister_token');
+      
+      if (!hasToken || !isAuthenticated || !user) {
         setHasRedirected(true);
         navigate('/login');
         return;

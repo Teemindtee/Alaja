@@ -103,7 +103,10 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (isAuthenticated && user) {
+  // Check if we have a valid token in localStorage
+  const hasToken = !!localStorage.getItem('findermeister_token');
+
+  if (hasToken && isAuthenticated && user) {
     // Redirect authenticated users to their dashboard
     if (user.role === 'admin') {
       navigate('/admin/dashboard');
