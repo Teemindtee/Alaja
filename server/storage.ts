@@ -358,6 +358,7 @@ export interface IStorage {
 
   // New method for proposals
   getProposalsForClient(clientId: string): Promise<Proposal[]>;
+  getProposalWithDetails(id: string): Promise<any>;
 }
 
 class DatabaseStorage implements IStorage {
@@ -1042,7 +1043,75 @@ class DatabaseStorage implements IStorage {
 
   // Implementation for getProposalsForClient
   async getProposalsForClient(clientId: string): Promise<Proposal[]> {
-    return await db.select().from(proposals).where(eq(proposals.clientId, clientId));
+    const result = await db
+      .select({
+        id: proposals.id,
+        findId: proposals.findId,
+        finderId: proposals.finderId,
+        approach: proposals.approach,
+        price: proposals.price,
+        timeline: proposals.timeline,
+        notes: proposals.notes,
+        status: proposals.status,
+        createdAt: proposals.createdAt,
+        findTitle: finds.title,
+        finder: {
+          id: finders.id,
+          user: {
+            firstName: users.firstName,
+            lastName: users.lastName,
+            email: users.email
+          }
+        }
+      })
+      .from(proposals)
+      .innerJoin(finds, eq(proposals.findId, finds.id))
+      .innerJoin(finders, eq(proposals.finderId, finders.id))
+      .innerJoin(users, eq(finders.userId, users.id))
+      .where(eq(finds.clientId, clientId))
+      .orderBy(desc(proposals.createdAt));
+
+    return result as any[];
+  }
+
+  async getProposalWithDetails(id: string): Promise<any> {
+    const result = await db
+      .select({
+        id: proposals.id,
+        findId: proposals.findId,
+        finderId: proposals.finderId,
+        approach: proposals.approach,
+        price: proposals.price,
+        timeline: proposals.timeline,
+        notes: proposals.notes,
+        status: proposals.status,
+        createdAt: proposals.createdAt,
+        finder: {
+          id: finders.id,
+          user: {
+            firstName: users.firstName,
+            lastName: users.lastName,
+            email: users.email
+          },
+          completedJobs: finders.jobsCompleted,
+          rating: finders.averageRating
+        },
+        request: {
+          title: finds.title,
+          description: finds.description,
+          category: finds.category,
+          budgetMin: finds.budgetMin,
+          budgetMax: finds.budgetMax
+        }
+      })
+      .from(proposals)
+      .innerJoin(finders, eq(proposals.finderId, finders.id))
+      .innerJoin(users, eq(finders.userId, users.id))
+      .innerJoin(finds, eq(proposals.findId, finds.id))
+      .where(eq(proposals.id, id))
+      .limit(1);
+
+    return result[0];
   }
 }
 
