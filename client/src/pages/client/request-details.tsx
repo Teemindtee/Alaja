@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams, useLocation } from "wouter";
+import { useParams, useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -459,6 +459,20 @@ export default function RequestDetails() {
                         </div>
                       </div>
                     ))}
+
+                    {/* Check if any proposal has been accepted and show contract link */}
+                    {proposals.some(p => p.status === 'accepted') && (
+                      <div className="text-center pt-4 pb-2">
+                        <Link href="/client/contracts">
+                          <Button 
+                            className="bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                          >
+                            <CheckCircle2 className="w-4 h-4 mr-2" />
+                            View Contract
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
 
                     {proposals.length > 3 && (
                       <div className="text-center pt-4">
