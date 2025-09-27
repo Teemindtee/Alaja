@@ -1790,15 +1790,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/contracts/:contractId/payment", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { contractId } = req.params;
+      console.log(`Initializing payment for contract: ${contractId}`);
 
       // Get contract details
       const contract = await storage.getContract(contractId);
       if (!contract) {
+        console.log(`Contract not found: ${contractId}`);
         return res.status(404).json({ message: "Contract not found" });
       }
 
       // Verify user is the client for this contract
       if (contract.clientId !== req.user.userId) {
+        console.log(`Access denied for contract ${contractId}. Contract clientId: ${contract.clientId}, User ID: ${req.user.userId}`);
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -1814,52 +1817,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get user details for payment
       const user = await storage.getUser(req.user.userId);
       if (!user) {
+        console.log(`User not found: ${req.user.userId}`);
         return res.status(404).json({ message: "User not found" });
       }
 
-      // Initialize payment with Flutterwave
-      const flutterwaveService = new FlutterwaveService();
+      // Check if FlutterwaveService is available
+      let flutterwaveService;
+      try {
+        flutterwaveService = new FlutterwaveService();
+      } catch (error) {
+        console.error('Failed to initialize FlutterwaveService:', error);
+        return res.status(503).json({
+          message: "Payment service is temporarily unavailable. Please try again later or contact support.",
+          error: "Payment service initialization failed"
+        });
+      }
       
       if (!flutterwaveService.isConfigured()) {
+        console.log('Flutterwave service is not configured');
         return res.status(503).json({
           message: "Payment service is not configured. Please contact support.",
           error: "Flutterwave not configured"
         });
       }
 
-      // Generate payment reference
-      const reference = flutterwaveService.generateTransactionReference(user.id);
-      
-      // Get contract amount (convert from string to number)
-      const contractAmount = parseFloat(contract.amount);
-      
-      // Get find details for better payment description
-      const proposal = await storage.getProposal(contract.proposalId);
-      const find = proposal ? await storage.getFind(proposal.findId) : null;
-      
-      // Initialize Flutterwave payment
-      const paymentData = await flutterwaveService.initializeTransaction(
-        user.email,
-        contractAmount,
-        reference,
-        {
-          userId: user.id,
-          contractId: contractId,
-          type: 'contract_payment',
-          description: find ? `Contract payment for: ${find.title}` : 'Contract payment'
-        },
-        `${req.protocol}://${req.get('host')}/client/contracts/${contractId}?payment=success&reference=${reference}`
-      );
+      try {
+        // Generate payment reference
+        const reference = flutterwaveService.generateTransactionReference(user.id);
+        console.log(`Generated payment reference: ${reference}`);
+        
+        // Get contract amount (convert from string to number)
+        const contractAmount = parseFloat(contract.amount);
+        console.log(`Contract amount: ${contractAmount}`);
+        
+        if (isNaN(contractAmount) || contractAmount <= 0) {
+          console.log(`Invalid contract amount: ${contract.amount}`);
+          return res.status(400).json({
+            message: "Invalid contract amount",
+            error: "Contract amount must be a positive number"
+          });
+        }
+        
+        // Get find details for better payment description
+        const proposal = await storage.getProposal(contract.proposalId);
+        const find = proposal ? await storage.getFind(proposal.findId) : null;
+        
+        // Initialize Flutterwave payment
+        console.log('Initializing Flutterwave transaction...');
+        const paymentData = await flutterwaveService.initializeTransaction(
+          user.email,
+          contractAmount,
+          reference,
+          {
+            userId: user.id,
+            contractId: contractId,
+            type: 'contract_payment',
+            description: find ? `Contract payment for: ${find.title}` : 'Contract payment'
+          },
+          `${req.protocol}://${req.get('host')}/client/contracts/${contractId}?payment=success&reference=${reference}`
+        );
 
-      res.json({
-        authorization_url: paymentData.authorization_url,
-        reference: reference,
-        amount: contractAmount
-      });
+        console.log('Payment initialization successful');
+        res.json({
+          authorization_url: paymentData.authorization_url,
+          reference: reference,
+          amount: contractAmount
+        });
+
+      } catch (paymentError) {
+        console.error('Flutterwave payment initialization error:', paymentError);
+        return res.status(503).json({
+          message: "Unable to initialize payment. Please try again or contact support.",
+          error: paymentError.message || "Payment service error"
+        });
+      }
 
     } catch (error) {
       console.error('Contract payment initialization error:', error);
-      res.status(500).json({ message: "Failed to initialize payment" });
+      res.status(500).json({ 
+        message: "Failed to initialize payment",
+        error: error.message || "Internal server error"
+      });
     }
   });
 

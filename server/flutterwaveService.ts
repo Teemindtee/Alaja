@@ -1,4 +1,3 @@
-
 import crypto from 'crypto';
 
 export interface FlutterwaveTokenPackage {
@@ -56,21 +55,30 @@ export class FlutterwaveService {
   constructor() {
     this.secretKey = process.env.FLUTTERWAVE_SECRET_KEY || '';
     this.publicKey = process.env.FLUTTERWAVE_PUBLIC_KEY || '';
-    
-    if (!this.secretKey) {
-      console.warn('FLUTTERWAVE_SECRET_KEY not found in environment variables');
+
+    if (!this.secretKey || !this.publicKey) {
+      console.warn('Flutterwave configuration incomplete:', {
+        hasSecretKey: !!this.secretKey,
+        hasPublicKey: !!this.publicKey
+      });
     }
   }
 
   isConfigured(): boolean {
-    return !!this.secretKey && !!this.publicKey;
+    const configured = !!(this.secretKey && this.publicKey);
+    console.log('Flutterwave configuration status:', {
+      configured,
+      hasSecretKey: !!this.secretKey,
+      hasPublicKey: !!this.publicKey
+    });
+    return configured;
   }
 
   async initializeTransaction(
-    email: string, 
-    amount: number, 
-    reference: string, 
-    metadata: any = {}, 
+    email: string,
+    amount: number,
+    reference: string,
+    metadata: any = {},
     callbackUrl?: string,
     redirectUrl?: string
   ) {
@@ -119,7 +127,7 @@ export class FlutterwaveService {
 
       const data = await response.json();
       console.log('Flutterwave response:', JSON.stringify(data, null, 2));
-      
+
       if (!response.ok || data.status !== 'success') {
         console.error('Flutterwave initialization failed:', data);
         throw new Error(data.message || 'Failed to initialize transaction');
@@ -148,7 +156,7 @@ export class FlutterwaveService {
 
       const data = await response.json();
       console.log('Flutterwave verification response:', JSON.stringify(data, null, 2));
-      
+
       if (!response.ok || data.status !== 'success') {
         console.error('Flutterwave verification failed:', data);
         throw new Error(data.message || 'Failed to verify transaction');
@@ -173,20 +181,20 @@ export class FlutterwaveService {
       console.log('Missing signature or secret key for webhook verification');
       return false;
     }
-    
+
     const hash = crypto
       .createHmac('sha256', this.secretKey)
       .update(payload)
       .digest('hex');
-    
+
     const isValid = hash === signature;
-    
+
     if (!isValid) {
       console.log('Flutterwave webhook signature verification failed');
       console.log('Expected:', hash);
       console.log('Received:', signature);
     }
-    
+
     return isValid;
   }
 
@@ -206,7 +214,7 @@ export class FlutterwaveService {
       });
 
       const data = await response.json();
-      
+
       if (!response.ok || data.status !== 'success') {
         throw new Error(data.message || 'Failed to fetch transactions');
       }
@@ -238,7 +246,7 @@ export class FlutterwaveService {
       });
 
       const data = await response.json();
-      
+
       if (!response.ok || data.status !== 'success') {
         throw new Error(data.message || 'Failed to process refund');
       }
@@ -292,7 +300,7 @@ export class FlutterwaveService {
 
       const data = await response.json();
       console.log('Flutterwave bank transfer response:', JSON.stringify(data, null, 2));
-      
+
       if (!response.ok || data.status !== 'success') {
         console.error('Flutterwave bank transfer failed:', data);
         throw new Error(data.message || 'Failed to initiate bank transfer');
@@ -325,7 +333,7 @@ export class FlutterwaveService {
 
       const data = await response.json();
       console.log('Flutterwave transfer verification response:', JSON.stringify(data, null, 2));
-      
+
       if (!response.ok || data.status !== 'success') {
         console.error('Flutterwave transfer verification failed:', data);
         throw new Error(data.message || 'Failed to verify transfer');
@@ -378,7 +386,7 @@ export class FlutterwaveService {
       };
 
       const normalizedBankName = bankName.toLowerCase().trim();
-      
+
       // Try exact match first
       if (bankCodes[normalizedBankName]) {
         return bankCodes[normalizedBankName];

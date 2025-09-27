@@ -792,28 +792,124 @@ function Label({ className = "", children }: { className?: string; children: Rea
   );
 }
 
-// Placeholder for PaymentModal component (assuming it exists elsewhere)
-// In a real application, this would be imported from a separate file.
+// Enhanced PaymentModal component with better error handling
 function PaymentModal({ isOpen, onClose, contractId, amount, paymentUrl, reference, findTitle, finderName }: any) {
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  // Auto-initialize payment when modal opens
+  useEffect(() => {
+    if (isOpen && contractId && !paymentUrl) {
+      setStatus('loading');
+      setErrorMessage('');
+      
+      // Simulate payment initialization call
+      apiRequest(`/api/contracts/${contractId}/payment`, {
+        method: "POST",
+      })
+      .then((data) => {
+        if (data.authorization_url) {
+          window.open(data.authorization_url, '_blank', 'width=600,height=600');
+          onClose(); // Close modal after opening payment window
+        } else {
+          setStatus('error');
+          setErrorMessage('Payment service is currently unavailable. Please try again later.');
+        }
+      })
+      .catch((error) => {
+        console.error('Payment initialization failed:', error);
+        setStatus('error');
+        setErrorMessage(error.message || 'Payment service is currently unavailable. Please try again later or contact support.');
+      });
+    } else if (paymentUrl) {
+      setStatus('ready');
+    }
+  }, [isOpen, contractId, paymentUrl, onClose]);
+
   if (!isOpen) return null;
 
-  // This is a simplified placeholder. A real PaymentModal would handle payment integration.
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
+      <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">Fund Contract</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">&times;</button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
         </div>
-        <p className="mb-4">You are about to fund contract: <strong>{findTitle}</strong> for <strong>₦{amount.toLocaleString()}</strong> with {finderName}.</p>
-        {paymentUrl ? (
-          <a href={paymentUrl} target="_blank" rel="noopener noreferrer">
-            <Button className="w-full bg-green-600 hover:bg-green-700">Proceed to Payment</Button>
-          </a>
-        ) : (
-          <p className="text-sm text-gray-600">Payment details are being prepared...</p>
+        
+        <div className="mb-4">
+          <p className="text-sm text-gray-600 mb-2">Contract Details:</p>
+          <p className="font-medium">{findTitle}</p>
+          <p className="text-sm text-gray-600">with {finderName}</p>
+          <p className="text-lg font-bold text-green-600 mt-2">₦{amount?.toLocaleString()}</p>
+        </div>
+
+        {status === 'loading' && (
+          <div className="text-center py-4">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-blue-600" />
+            <p className="text-sm text-gray-600">Preparing payment...</p>
+          </div>
         )}
-        <Button variant="outline" onClick={onClose} className="w-full mt-2">Cancel</Button>
+
+        {status === 'ready' && paymentUrl && (
+          <div className="space-y-3">
+            <p className="text-sm text-gray-600">Click below to proceed with payment:</p>
+            <a href={paymentUrl} target="_blank" rel="noopener noreferrer">
+              <Button className="w-full bg-green-600 hover:bg-green-700">
+                <CreditCard className="w-4 h-4 mr-2" />
+                Proceed to Payment
+              </Button>
+            </a>
+          </div>
+        )}
+
+        {status === 'error' && (
+          <div className="space-y-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="flex items-center space-x-2 mb-2">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+                <p className="text-sm font-medium text-red-800">Payment Unavailable</p>
+              </div>
+              <p className="text-sm text-red-700">{errorMessage}</p>
+            </div>
+            <div className="space-y-2">
+              <Button 
+                onClick={() => {
+                  setStatus('loading');
+                  setErrorMessage('');
+                  // Retry payment initialization
+                  apiRequest(`/api/contracts/${contractId}/payment`, {
+                    method: "POST",
+                  })
+                  .then((data) => {
+                    if (data.authorization_url) {
+                      window.open(data.authorization_url, '_blank', 'width=600,height=600');
+                      onClose();
+                    } else {
+                      setStatus('error');
+                      setErrorMessage('Payment service is currently unavailable. Please try again later.');
+                    }
+                  })
+                  .catch((error) => {
+                    setStatus('error');
+                    setErrorMessage(error.message || 'Payment service is currently unavailable. Please try again later or contact support.');
+                  });
+                }}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                Try Again
+              </Button>
+              <Button variant="outline" onClick={onClose} className="w-full">
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {status !== 'error' && (
+          <Button variant="outline" onClick={onClose} className="w-full mt-3">
+            Cancel
+          </Button>
+        )}
       </div>
     </div>
   );
