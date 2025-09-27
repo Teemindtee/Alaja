@@ -954,7 +954,8 @@ class DatabaseStorage implements IStorage {
       await db.update(users)
         .set({ 
           isVerified: true, 
-          identityVerificationStatus: 'verified' 
+          identityVerificationStatus: 'verified',
+          updatedAt: new Date()
         })
         .where(eq(users.id, result[0].userId));
 
@@ -962,7 +963,10 @@ class DatabaseStorage implements IStorage {
       const finder = await db.select().from(finders).where(eq(finders.userId, result[0].userId)).limit(1);
       if (finder[0]) {
         await db.update(finders)
-          .set({ isVerified: true })
+          .set({ 
+            isVerified: true,
+            updatedAt: new Date()
+          })
           .where(eq(finders.id, finder[0].id));
       }
     } else if (result[0] && status === 'rejected') {
@@ -970,9 +974,21 @@ class DatabaseStorage implements IStorage {
       await db.update(users)
         .set({ 
           isVerified: false, 
-          identityVerificationStatus: 'rejected' 
+          identityVerificationStatus: 'rejected',
+          updatedAt: new Date()
         })
         .where(eq(users.id, result[0].userId));
+
+      // Also update finder verification if user is a finder
+      const finder = await db.select().from(finders).where(eq(finders.userId, result[0].userId)).limit(1);
+      if (finder[0]) {
+        await db.update(finders)
+          .set({ 
+            isVerified: false,
+            updatedAt: new Date()
+          })
+          .where(eq(finders.id, finder[0].id));
+      }
     }
 
     return result[0];

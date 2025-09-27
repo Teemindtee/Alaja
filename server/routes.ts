@@ -1178,6 +1178,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Verification not found" });
       }
 
+      console.log(`Verification approved for user ${verification.userId} - status updated to verified`);
+
       res.json({
         message: "Verification approved successfully",
         verification
