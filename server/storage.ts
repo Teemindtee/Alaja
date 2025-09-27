@@ -896,8 +896,16 @@ class DatabaseStorage implements IStorage {
   async deleteFAQCategory(id: string): Promise<boolean> { return false; }
 
   // Verification operations
-  async submitVerification(verification: any): Promise<any> { return verification; }
-  async getVerificationByUserId(userId: string): Promise<any> { return null; }
+  async submitVerification(verification: any): Promise<any> {
+    const result = await db.insert(userVerifications).values(verification).returning();
+    return result[0];
+  }
+
+  async getVerificationByUserId(userId: string): Promise<any> {
+    const result = await db.select().from(userVerifications).where(eq(userVerifications.userId, userId)).limit(1);
+    return result[0] || null;
+  }
+
   async getPendingVerifications(): Promise<any[]> {
     return await db.select({
       id: userVerifications.id,
@@ -923,9 +931,86 @@ class DatabaseStorage implements IStorage {
     .where(eq(userVerifications.status, 'pending'))
     .orderBy(desc(userVerifications.submittedAt));
   }
-  async updateVerificationStatus(id: string, status: string, reviewedBy: string, rejectionReason?: string): Promise<any> { return {}; }
-  async getVerificationById(id: string): Promise<any> { return null; }
-  async isVerificationRequired(): Promise<boolean> { return false; }
+
+  async updateVerificationStatus(id: string, status: string, reviewedBy: string, rejectionReason?: string): Promise<any> {
+    const updates: any = {
+      status,
+      reviewedBy,
+      reviewedAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    if (rejectionReason) {
+      updates.rejectionReason = rejectionReason;
+    }
+
+    const result = await db.update(userVerifications)
+      .set(updates)
+      .where(eq(userVerifications.id, id))
+      .returning();
+
+    if (result[0] && status === 'verified') {
+      // Update user's verification status
+      await db.update(users)
+        .set({ 
+          isVerified: true, 
+          identityVerificationStatus: 'verified' 
+        })
+        .where(eq(users.id, result[0].userId));
+
+      // Also update finder verification if user is a finder
+      const finder = await db.select().from(finders).where(eq(finders.userId, result[0].userId)).limit(1);
+      if (finder[0]) {
+        await db.update(finders)
+          .set({ isVerified: true })
+          .where(eq(finders.id, finder[0].id));
+      }
+    } else if (result[0] && status === 'rejected') {
+      // Update user's verification status to rejected
+      await db.update(users)
+        .set({ 
+          isVerified: false, 
+          identityVerificationStatus: 'rejected' 
+        })
+        .where(eq(users.id, result[0].userId));
+    }
+
+    return result[0];
+  }
+
+  async getVerificationById(id: string): Promise<any> {
+    const result = await db.select({
+      id: userVerifications.id,
+      userId: userVerifications.userId,
+      documentType: userVerifications.documentType,
+      documentFrontImage: userVerifications.documentFrontImage,
+      documentBackImage: userVerifications.documentBackImage,
+      selfieImage: userVerifications.selfieImage,
+      status: userVerifications.status,
+      submittedAt: userVerifications.submittedAt,
+      reviewedAt: userVerifications.reviewedAt,
+      rejectionReason: userVerifications.rejectionReason,
+      reviewedBy: userVerifications.reviewedBy,
+      user: {
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        role: users.role
+      }
+    })
+    .from(userVerifications)
+    .innerJoin(users, eq(userVerifications.userId, users.id))
+    .where(eq(userVerifications.id, id))
+    .limit(1);
+
+    return result[0] || null;
+  }
+
+  async isVerificationRequired(): Promise<boolean> {
+    const setting = await this.getAdminSetting('verification_required');
+    return setting?.value === 'true';
+  }
 
   // Support tickets
   async createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket> { throw new Error('Not implemented'); }

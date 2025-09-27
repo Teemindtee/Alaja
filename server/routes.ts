@@ -1167,6 +1167,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin approve verification
+  app.post("/api/admin/verifications/:id/approve", authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const verification = await storage.updateVerificationStatus(id, 'verified', req.user.userId);
+
+      if (!verification) {
+        return res.status(404).json({ message: "Verification not found" });
+      }
+
+      res.json({
+        message: "Verification approved successfully",
+        verification
+      });
+    } catch (error) {
+      console.error('Error approving verification:', error);
+      res.status(500).json({ message: "Failed to approve verification" });
+    }
+  });
+
+  // Admin reject verification
+  app.post("/api/admin/verifications/:id/reject", authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+
+      if (!reason) {
+        return res.status(400).json({ message: "Rejection reason is required" });
+      }
+
+      const verification = await storage.updateVerificationStatus(id, 'rejected', req.user.userId, reason);
+
+      if (!verification) {
+        return res.status(404).json({ message: "Verification not found" });
+      }
+
+      res.json({
+        message: "Verification rejected successfully",
+        verification
+      });
+    } catch (error) {
+      console.error('Error rejecting verification:', error);
+      res.status(500).json({ message: "Failed to reject verification" });
+    }
+  });
+
+  // Admin get verification details
+  app.get("/api/admin/verifications/:id", authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const verification = await storage.getVerificationById(id);
+
+      if (!verification) {
+        return res.status(404).json({ message: "Verification not found" });
+      }
+
+      res.json(verification);
+    } catch (error) {
+      console.error('Error fetching verification details:', error);
+      res.status(500).json({ message: "Failed to fetch verification details" });
+    }
+  });
+
   // --- Support Ticket ---
   // Support ticket submission endpoint
   app.post("/api/support/tickets", async (req: Request, res: Response) => {
