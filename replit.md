@@ -3,6 +3,7 @@
 FinderMeister is a full-stack service marketplace platform designed to connect clients seeking products or services with freelance "finders." The platform facilitates a streamlined process for clients to post requests and for finders to submit proposals. Key features include role-based authentication (clients, finders, admins), a token-based proposal system, secure escrow functionality for payments, and comprehensive administrative tools for platform management. The vision is to create an efficient and trustworthy marketplace for finding specialized services.
 
 ## Recent Enhancements (January 2025)
+- **Budget Display Bug Fix (Sep 2025)**: Fixed critical issue in client dashboard where budget amounts were displaying incorrectly (₦10-₦20 instead of ₦1000-₦2000) due to unintended division by 100 in local formatCurrency function. Removed the incorrect division to display accurate budget values.
 - **Client Profile Page**: Completely redesigned with ultra-modern, clean, crispy design featuring animated gradient backgrounds, premium glass-morphism cards, enhanced mobile responsiveness, inline editing system, and comprehensive account management features.
 - **Withdrawal Balance Fix**: Resolved critical issue where negative balances (₦-2272.50) were displayed, implemented proper balance validation, and reset affected balances to zero with Math.max(0, balance) protection.
 - **Logout Redirect Enhancement**: Fixed logout functionality to redirect immediately to home page without showing flash of empty data or current page content during logout process.

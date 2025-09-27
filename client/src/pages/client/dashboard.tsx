@@ -24,7 +24,7 @@ export default function ClientDashboard() {
       currency: 'NGN',
       minimumFractionDigits: 0,
       maximumFractionDigits: 2,
-    }).format(numAmount / 100);
+    }).format(numAmount);
   };
 
   // Format date
