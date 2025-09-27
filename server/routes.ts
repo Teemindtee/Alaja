@@ -2883,10 +2883,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // --- Messaging Routes ---
   // Only clients can initiate conversations
-  app.post('/api/messages/conversations', requireAuth, async (req, res) => {
+  app.post('/api/messages/conversations', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { proposalId } = req.body;
-      console.log('Create conversation request:', { proposalId, userId: req.user.id });
+      console.log('Create conversation request:', { proposalId, userId: req.user.userId });
 
       if (!proposalId) {
         return res.status(400).json({ message: 'Proposal ID is required' });
@@ -2908,9 +2908,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Creating conversation for proposal:', proposal);
 
+      // Get the find to get the client ID
+      const find = await storage.getFind(proposal.findId);
+      if (!find) {
+        console.error('Find not found for proposal:', proposalId);
+        return res.status(404).json({ message: 'Find not found' });
+      }
+
+      // Verify user is authorized (either client or finder)
+      if (req.user.role === 'client' && find.clientId !== req.user.userId) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+
+      if (req.user.role === 'finder') {
+        const finder = await storage.getFinderByUserId(req.user.userId);
+        if (!finder || proposal.finderId !== finder.id) {
+          return res.status(403).json({ message: 'Access denied' });
+        }
+      }
+
       // Create new conversation
       const conversation = await storage.createConversation({
-        clientId: proposal.clientId,
+        clientId: find.clientId,
         finderId: proposal.finderId,
         proposalId: proposalId
       });

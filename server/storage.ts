@@ -1129,14 +1129,16 @@ class DatabaseStorage implements IStorage {
   }
 
   async createConversation(data: { clientId: string; finderId: string; proposalId: string }): Promise<any> {
+    const conversationId = generateId();
     const [conversation] = await db
       .insert(conversations)
       .values({
-        id: crypto.randomUUID(),
+        id: conversationId,
         clientId: data.clientId,
         finderId: data.finderId,
         proposalId: data.proposalId,
         createdAt: new Date(),
+        lastMessageAt: new Date(),
       })
       .returning();
 
