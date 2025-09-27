@@ -119,33 +119,8 @@ export default function ContractDetails() {
     },
     onSuccess: (data) => {
       if (data.authorization_url) {
-        // Open Flutterwave payment page directly
-        const paymentWindow = window.open(data.authorization_url, '_blank', 'width=600,height=600');
-        
-        if (paymentWindow) {
-          // Poll for window closure and verify payment
-          const checkClosed = setInterval(() => {
-            if (paymentWindow.closed) {
-              clearInterval(checkClosed);
-              
-              // Verify payment after window closes
-              setTimeout(() => {
-                verifyPaymentMutation.mutate(data.reference);
-              }, 2000);
-            }
-          }, 1000);
-        } else {
-          // Fallback: show modal with payment URL
-          setPaymentModal({
-            isOpen: true,
-            contractId: contractId,
-            amount: data.amount,
-            paymentUrl: data.authorization_url,
-            reference: data.reference,
-            findTitle: contract?.request?.title || 'Find Request',
-            finderName: contract?.finder?.name || 'Finder',
-          });
-        }
+        // Redirect to Flutterwave payment page
+        window.location.href = data.authorization_url;
       } else {
         toast({
           variant: "destructive",
@@ -803,14 +778,14 @@ function PaymentModal({ isOpen, onClose, contractId, amount, paymentUrl, referen
       setStatus('loading');
       setErrorMessage('');
       
-      // Simulate payment initialization call
+      // Initialize payment
       apiRequest(`/api/contracts/${contractId}/payment`, {
         method: "POST",
       })
       .then((data) => {
         if (data.authorization_url) {
-          window.open(data.authorization_url, '_blank', 'width=600,height=600');
-          onClose(); // Close modal after opening payment window
+          // Redirect to Flutterwave payment page directly
+          window.location.href = data.authorization_url;
         } else {
           setStatus('error');
           setErrorMessage('Payment service is currently unavailable. Please try again later.');

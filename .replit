@@ -23,7 +23,7 @@ PORT = "5000"
 DATABASE_URL = "postgresql://username:password@localhost:5432/findermeister"
 
 [workflows]
-runButton = "Project"
+runButton = "Clean Dev Server"
 
 [[workflows.workflow]]
 name = "Project"
@@ -72,6 +72,27 @@ args = "npm run dev"
 name = "Start Dev Server"
 author = 46116882
 mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+
+[[workflows.workflow]]
+name = "Clean Dev Server"
+author = 46116882
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pkill -f \"npm.*dev\" || true"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pkill -f \"node.*server\" || true"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "sleep 2"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"

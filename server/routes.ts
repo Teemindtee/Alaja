@@ -1874,7 +1874,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             type: 'contract_payment',
             description: find ? `Contract payment for: ${find.title}` : 'Contract payment'
           },
-          `${req.protocol}://${req.get('host')}/client/contracts/${contractId}?payment=success&reference=${reference}`
+          undefined, // No callback URL needed for this flow
+          `${process.env.FRONTEND_URL || 'https://9cf9cc87-8709-4461-9738-666041d56be6-00-1zx1levk60so9.kirk.replit.dev'}/client/payment-success?type=contract&contractId=${contractId}&reference=${reference}`
         );
 
         console.log('Payment initialization successful');

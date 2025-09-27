@@ -18,6 +18,7 @@ import ClientBrowseRequests from "@/pages/client/browse-requests";
 import ClientProfile from "@/pages/client/profile";
 import ClientContracts from "@/pages/client/contracts";
 import ContractDetails from "@/pages/client/contract-details";
+import PaymentSuccess from "@/pages/client/payment-success";
 import ChangePassword from "@/pages/client/change-password";
 import FinderDashboard from "@/pages/finder/dashboard";
 import FinderBrowseRequests from "@/pages/finder/browse-requests";
@@ -73,12 +74,12 @@ import AgentDashboard from "@/pages/agent/dashboard";
 import AgentTickets from "@/pages/agent/tickets";
 import AgentTicketDetails from "@/pages/agent/ticket-details";
 import AdminContactSettings from "./pages/admin/contact-settings";
-import { 
-  AdminRoute, 
-  FinderRoute, 
-  ClientRoute, 
-  AuthenticatedRoute, 
-  AgentRoute 
+import {
+  AdminRoute,
+  FinderRoute,
+  ClientRoute,
+  AuthenticatedRoute,
+  AgentRoute
 } from "@/components/ProtectedRoute";
 
 // Dynamically import ResetPassword component
@@ -137,6 +138,7 @@ function Router() {
       <Route path="/client/contracts" component={() => <ClientRoute><ClientContracts /></ClientRoute>} />
       <Route path="/client/contracts/:contractId" component={() => <ClientRoute><ContractDetails /></ClientRoute>} />
       <Route path="/client/fund-contract/:contractId" component={() => <ClientRoute><ContractDetails /></ClientRoute>} />
+      <Route path="/client/payment-success" component={() => <AuthGuard allowedRoles={['client']}><PaymentSuccess /></AuthGuard>} />
       <Route path="/client/browse-finds" component={() => <ClientRoute><ClientBrowseRequests /></ClientRoute>} />
       <Route path="/client/browse-requests" component={() => <ClientRoute><ClientBrowseRequests /></ClientRoute>} />
       <Route path="/client/finds" component={() => <ClientRoute><ClientBrowseRequests /></ClientRoute>} />
