@@ -140,6 +140,8 @@ export interface IStorage {
   getContract(id: string): Promise<Contract | undefined>;
   getContractsByClientId(clientId: string): Promise<Contract[]>;
   getContractsByFinderId(finderId: string): Promise<Contract[]>;
+  getContractDetails(contractId: string, finderId: string): Promise<any>;
+  getCompletedContractsByFinder(finderId: string): Promise<Contract[]>;
   createContract(contract: InsertContract): Promise<Contract>;
   updateContract(id: string, updates: Partial<Contract>): Promise<Contract | undefined>;
 
@@ -515,6 +517,35 @@ class DatabaseStorage implements IStorage {
     return await db.select().from(contracts).where(eq(contracts.finderId, finderId));
   }
 
+  async getContractDetails(contractId: string, finderId: string): Promise<any> {
+    const result = await db
+      .select({
+        id: contracts.id,
+        findId: contracts.findId,
+        proposalId: contracts.proposalId,
+        clientId: contracts.clientId,
+        finderId: contracts.finderId,
+        amount: contracts.amount,
+        escrowStatus: contracts.escrowStatus,
+        isCompleted: contracts.isCompleted,
+        hasSubmission: contracts.hasSubmission,
+        createdAt: contracts.createdAt,
+        completedAt: contracts.completedAt,
+        request: {
+          title: finds.title,
+          description: finds.description,
+          category: finds.category,
+          timeframe: finds.timeframe
+        }
+      })
+      .from(contracts)
+      .innerJoin(finds, eq(contracts.findId, finds.id))
+      .where(and(eq(contracts.id, contractId), eq(contracts.finderId, finderId)))
+      .limit(1);
+
+    return result[0];
+  }
+
   async createContract(contract: InsertContract): Promise<Contract> {
     const result = await db.insert(contracts).values(contract).returning();
     return result[0];
@@ -737,6 +768,11 @@ class DatabaseStorage implements IStorage {
 
   async getWithdrawalsByFinderId(finderId: string): Promise<WithdrawalRequest[]> {
     return await db.select().from(withdrawalRequests).where(eq(withdrawalRequests.finderId, finderId));
+  }
+
+  async getCompletedContractsByFinder(finderId: string): Promise<Contract[]> {
+    return await db.select().from(contracts)
+      .where(and(eq(contracts.finderId, finderId), eq(contracts.isCompleted, true)));
   }
 
   // Add all other required method implementations...

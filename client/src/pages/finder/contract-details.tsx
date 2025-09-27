@@ -69,7 +69,7 @@ export default function FinderContractDetails() {
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
 
   const { data: contract, isLoading } = useQuery<ContractDetails>({
-    queryKey: ['/api/finder/contracts', contractId],
+    queryKey: [`/api/finder/contracts/${contractId}`],
     enabled: !!user && !!contractId
   });
 
