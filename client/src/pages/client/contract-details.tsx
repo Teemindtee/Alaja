@@ -93,19 +93,26 @@ export default function ContractDetails() {
 
   const createConversation = useMutation({
     mutationFn: async (proposalId: string) => {
+      console.log('Creating conversation with proposalId:', proposalId);
       return apiRequest("/api/messages/conversations", {
         method: "POST",
         body: JSON.stringify({ proposalId }),
       });
     },
     onSuccess: (data) => {
+      console.log('Conversation created successfully:', data);
       navigate(`/messages/${data.id}`);
+      toast({
+        title: "Success!",
+        description: "Conversation started successfully.",
+      });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('Conversation creation error:', error);
       toast({
         variant: "destructive",
         title: "Unable to Start Conversation",
-        description: "Please try again later.",
+        description: error?.message || "Please try again later.",
       });
     }
   });
@@ -188,7 +195,15 @@ export default function ContractDetails() {
 
   const handleMessageFinder = () => {
     if (contract?.proposalId) {
+      console.log('Starting conversation with proposal ID:', contract.proposalId);
       createConversation.mutate(contract.proposalId);
+    } else {
+      console.error('No proposal ID found in contract:', contract);
+      toast({
+        variant: "destructive",
+        title: "Unable to Start Conversation",
+        description: "Contract proposal information is missing.",
+      });
     }
   };
 

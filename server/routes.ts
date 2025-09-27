@@ -114,14 +114,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/admin/settings", authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const settings = req.body;
-      
+
       // Update each setting
       for (const [key, value] of Object.entries(settings)) {
         if (typeof value === 'string') {
           await storage.setAdminSetting(key, value);
         }
       }
-      
+
       res.json({ message: "Settings updated successfully" });
     } catch (error) {
       console.error('Admin settings update error:', error);
@@ -1242,14 +1242,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Validate required fields
       if (!name || !email || !category || !subject || !message) {
-        return res.status(400).json({ 
-          message: "Missing required fields: name, email, category, subject, and message are required" 
+        return res.status(400).json({
+          message: "Missing required fields: name, email, category, subject, and message are required"
         });
       }
 
       // Generate unique ticket number
       const ticketNumber = await storage.generateTicketNumber();
-      
+
       // Map category to department (can be enhanced with a lookup table later)
       const departmentMap: { [key: string]: string } = {
         'account': 'general',
@@ -1262,7 +1262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'dispute': 'disputes',
         'verification': 'verification'
       };
-      
+
       const department = departmentMap[category.toLowerCase()] || 'general';
 
       // Check if user is authenticated (optional - tickets can be anonymous)
@@ -1306,7 +1306,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isInternal: false
       });
 
-      console.log(`Support ticket created: ${ticketNumber}`, { 
+      console.log(`Support ticket created: ${ticketNumber}`, {
         id: ticket.id,
         submitter: name,
         email,
@@ -1349,12 +1349,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Only allow actual support agents, not admins
       const supportAgent = await storage.getUserSupportAgent(req.user.userId);
       console.log('Found support agent:', supportAgent ? supportAgent.id : 'none');
-      
+
       if (!supportAgent) {
         console.log('No support agent record found for user:', req.user.userId);
         return res.status(403).json({ message: 'Support agent access required. Please contact an administrator to be assigned as a support agent.' });
       }
-      
+
       if (!supportAgent.isActive) {
         console.log('Support agent is not active:', supportAgent.id);
         return res.status(403).json({ message: 'Support agent account is suspended' });
@@ -1414,7 +1414,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { status, priority, department, page = 1, limit = 20 } = req.query;
 
       let filters: any = {};
-      
+
       if (status && typeof status === 'string') {
         filters.status = status;
       }
@@ -1479,7 +1479,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (status !== undefined) {
         updates.status = status;
-        
+
         if (status === 'resolved' || status === 'closed') {
           updates.resolvedAt = new Date();
           if (resolution) {
@@ -1513,7 +1513,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // --- Support Agent Ticket Management ---
-  
+
   // Get tickets for agent based on permissions and department
   app.get("/api/agent/tickets", authenticateToken, requireSupportAgent, async (req: AuthenticatedRequest, res: Response) => {
     try {
@@ -1521,7 +1521,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { status, priority, page = 1, limit = 20 } = req.query;
 
       let filters: any = {};
-      
+
       // Apply department filter based on agent's department
       if (agent.department !== 'all') {
         filters.department = agent.department;
@@ -1694,7 +1694,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(403).json({ message: "Permission denied to close tickets" });
         }
         updates.status = status;
-        
+
         if (status === 'resolved' || status === 'closed') {
           updates.resolvedAt = new Date();
           if (resolution) {
@@ -1736,7 +1736,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get tickets assigned to this agent
       const assignedTickets = await storage.getSupportTickets({ assignedTo: agent.id });
-      
+
       // Get all tickets in agent's department for overview
       let departmentFilters: any = {};
       if (agent.department !== 'all') {
@@ -1832,7 +1832,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: "Payment service initialization failed"
         });
       }
-      
+
       if (!flutterwaveService.isConfigured()) {
         console.log('Flutterwave service is not configured');
         return res.status(503).json({
@@ -1845,11 +1845,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Generate payment reference
         const reference = flutterwaveService.generateTransactionReference(user.id);
         console.log(`Generated payment reference: ${reference}`);
-        
+
         // Get contract amount (convert from string to number)
         const contractAmount = parseFloat(contract.amount);
         console.log(`Contract amount: ${contractAmount}`);
-        
+
         if (isNaN(contractAmount) || contractAmount <= 0) {
           console.log(`Invalid contract amount: ${contract.amount}`);
           return res.status(400).json({
@@ -1857,11 +1857,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             error: "Contract amount must be a positive number"
           });
         }
-        
+
         // Get find details for better payment description
         const proposal = await storage.getProposal(contract.proposalId);
         const find = proposal ? await storage.getFind(proposal.findId) : null;
-        
+
         // Initialize Flutterwave payment
         console.log('Initializing Flutterwave transaction...');
         const paymentData = await flutterwaveService.initializeTransaction(
@@ -1895,7 +1895,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     } catch (error) {
       console.error('Contract payment initialization error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to initialize payment",
         error: error.message || "Internal server error"
       });
@@ -2288,7 +2288,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (verification.status === 'success') {
         // Check if this payment was already processed
         const existingTransaction = await storage.getTransactionByReference(reference);
-        
+
         if (!existingTransaction) {
           // Update contract status to funded
           await storage.updateContract(contractId, {
@@ -2883,36 +2883,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // --- Messaging Routes ---
   // Only clients can initiate conversations
-  app.post("/api/messages/conversations", authenticateToken, async (req: AuthenticatedRequest, res) => {
+  app.post('/api/messages/conversations', requireAuth, async (req, res) => {
     try {
-      if (req.user.role !== 'client') {
-        return res.status(403).json({ message: "Only clients can initiate conversations" });
-      }
-
       const { proposalId } = req.body;
-      const proposal = await storage.getProposal(proposalId);
+      console.log('Create conversation request:', { proposalId, userId: req.user.id });
 
-      if (!proposal) {
-        return res.status(404).json({ message: "Proposal not found" });
+      if (!proposalId) {
+        return res.status(400).json({ message: 'Proposal ID is required' });
       }
 
-      // Check if conversation already exists
-      const existingConversation = await storage.getConversation(req.user.userId, proposalId);
+      // Check if conversation already exists for this proposal
+      const existingConversation = await storage.getConversationByProposal(proposalId);
       if (existingConversation) {
+        console.log('Found existing conversation:', existingConversation.id);
         return res.json(existingConversation);
       }
 
+      // Get proposal details to validate and get participant IDs
+      const proposal = await storage.getProposal(proposalId);
+      if (!proposal) {
+        console.error('Proposal not found:', proposalId);
+        return res.status(404).json({ message: 'Proposal not found' });
+      }
+
+      console.log('Creating conversation for proposal:', proposal);
+
       // Create new conversation
       const conversation = await storage.createConversation({
-        clientId: req.user.userId,
+        clientId: proposal.clientId,
         finderId: proposal.finderId,
         proposalId: proposalId
       });
 
+      console.log('Created conversation:', conversation);
       res.json(conversation);
     } catch (error) {
       console.error('Create conversation error:', error);
-      res.status(500).json({ message: "Failed to create conversation" });
+      res.status(500).json({ message: 'Failed to create conversation', error: error.message });
     }
   });
 
@@ -3950,7 +3957,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { WithdrawalService } = await import('./withdrawalService');
       const withdrawalService = new WithdrawalService();
-      
+
       await withdrawalService.handleTransferWebhook(req.body.data);
 
       res.json({ status: 'success' });
@@ -5649,7 +5656,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const updated = await db
         .update(withdrawalSettings)
-        .set({ ...updateData, updatedAt: new Date() })
+        .set({ ...updateData, updatedAt: newDate().toString() })
         .where(eq(withdrawalSettings.id, id))
         .returning();
 

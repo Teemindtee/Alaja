@@ -359,6 +359,10 @@ export interface IStorage {
   // New method for proposals
   getProposalsForClient(clientId: string): Promise<Proposal[]>;
   getProposalWithDetails(id: string): Promise<any>;
+  
+  // Conversation methods
+  getConversationByProposal(proposalId: string): Promise<any>;
+  createConversation(data: { clientId: string; finderId: string; proposalId: string }): Promise<any>;
 }
 
 class DatabaseStorage implements IStorage {
@@ -1112,6 +1116,31 @@ class DatabaseStorage implements IStorage {
       .limit(1);
 
     return result[0];
+  }
+
+  async getConversationByProposal(proposalId: string): Promise<any> {
+    const result = await db
+      .select()
+      .from(conversations)
+      .where(eq(conversations.proposalId, proposalId))
+      .limit(1);
+
+    return result[0];
+  }
+
+  async createConversation(data: { clientId: string; finderId: string; proposalId: string }): Promise<any> {
+    const [conversation] = await db
+      .insert(conversations)
+      .values({
+        id: crypto.randomUUID(),
+        clientId: data.clientId,
+        finderId: data.finderId,
+        proposalId: data.proposalId,
+        createdAt: new Date(),
+      })
+      .returning();
+
+    return conversation;
   }
 }
 
