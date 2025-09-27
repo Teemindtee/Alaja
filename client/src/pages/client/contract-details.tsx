@@ -411,7 +411,9 @@ export default function ContractDetails() {
                         <div className="flex items-center text-amber-500">
                           <Star className="w-4 h-4 fill-current" />
                           <span className="text-sm font-medium ml-1">
-                            {contract.finder?.rating ? parseFloat(contract.finder.rating).toFixed(1) : '5.0'}
+                            {contract.finder?.rating && parseFloat(contract.finder.rating) > 0 
+                              ? parseFloat(contract.finder.rating).toFixed(1) 
+                              : 'No rating yet'}
                           </span>
                         </div>
                         <span className="text-slate-400">•</span>
